@@ -26,11 +26,12 @@ class NeuroEngine:
 
         # Marketing ROI Mapping (indices from research)
         self.roi_map = {
-            "Attention": [16, 55],       # G_front_sup, S_front_sup
-            "Emotion": [18, 6],          # G_insular_short, G_and_S_cingul-Ant
-            "Reward": [24, 65],          # G_orbital, S_orbital-H_Shaped
-            "Memory": [23],               # G_oc-temp_med-Parahip
-            "CognitiveLoad": [54]        # S_front_middle
+            "Attention": [16, 55, 15, 54], # Prefrontal & Dorsolateral
+            "Emotion": [18, 6, 7],         # Insula & Cingulate
+            "Reward": [24, 65, 31, 32],    # Orbitofrontal & Subcallosal
+            "Memory": [23, 62],            # Parahippocampal & Lingual
+            "CognitiveLoad": [54, 4],      # Frontal middle & Subcentral
+            "VisualEngagement": [2, 11, 45] # Occipital & Cuneus
         }
 
     def analyze_media(self, file_path, media_type="video"):
@@ -46,8 +47,25 @@ class NeuroEngine:
         elif media_type == "text":
             # For text, TRIBE v2 converts to speech then analyzes
             df_events = self.model.get_events_dataframe(text_path=file_path)
+        elif media_type == "url":
+            # 10x Enhancement: URL to Neuro
+            import requests
+            from bs4 import BeautifulSoup
+            try:
+                page = requests.get(file_path)
+                soup = BeautifulSoup(page.content, 'html.parser')
+                # Simple extraction of p tags
+                text = ' '.join([p.get_text() for p in soup.find_all('p')])
+                # Save to temp file
+                temp_text_path = "uploads/temp_url.txt"
+                with open(temp_text_path, "w") as f:
+                    f.write(text)
+                df_events = self.model.get_events_dataframe(text_path=temp_text_path)
+            except Exception as e:
+                print(f"URL extraction failed: {e}")
+                raise
         else:
-            raise ValueError("Unsupported media type. Use 'video', 'audio', or 'text'.")
+            raise ValueError("Unsupported media type.")
 
         preds, segments = self.model.predict(events=df_events)
         # preds shape: (n_timesteps, n_vertices)
@@ -88,6 +106,26 @@ class NeuroEngine:
             # Normalize to 0-100 for business readability
             metric_series = self._normalize(metric_series)
             results["metrics"][metric_name] = metric_series.tolist()
+
+        # 10x Feature: Spatial Peak (3D surface data for visualization)
+        # Only taking a few timepoints to save space in MVP
+        # In a real 10x SaaS, this would be a separate stream or compressed.
+        peak_idx = results["metrics"]["Attention"].index(max(results["metrics"]["Attention"]))
+        results["spatial_peaks"] = {
+            "pial_mesh_data": preds[peak_idx].tolist()
+        }
+
+        # 10x Feature: Moment-of-Impact (MOI) Analysis
+        # Detect significant spikes in Emotion and Reward
+        moi_events = []
+        for i in range(1, len(results["metrics"]["Emotion"]) - 1):
+            if results["metrics"]["Emotion"][i] > 80 and results["metrics"]["Emotion"][i] > results["metrics"]["Emotion"][i-1]:
+                moi_events.append({
+                    "timestamp": results["timestamps"][i],
+                    "type": "Emotional Peak",
+                    "value": results["metrics"]["Emotion"][i]
+                })
+        results["moi_analysis"] = moi_events[:5] # Top 5 peaks
 
         return results
 

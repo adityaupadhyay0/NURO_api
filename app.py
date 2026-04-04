@@ -71,6 +71,9 @@ async def analyze_media(
         file_path = os.path.join(UPLOAD_DIR, f"{task_id}.txt")
         with open(file_path, "w") as f:
             f.write(text_content)
+    elif media_type == "url" and text_content:
+        # Use URL from text_content directly
+        file_path = text_content
     elif file:
         file_path = os.path.join(UPLOAD_DIR, f"{task_id}_{file.filename}")
         with open(file_path, "wb") as buffer:
