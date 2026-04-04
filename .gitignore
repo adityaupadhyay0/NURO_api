@@ -1,0 +1,7 @@
+__pycache__/
+uploads/*
+results/*
+*.log
+nilearn_data/
+cache/
+.pytest_cache/
