@@ -39,7 +39,7 @@ with st.sidebar:
 
 # Application Navigation
 st.title("🧠 Performance Marketing Neuro-Predictor")
-tab1, tab2, tab3 = st.tabs(["🚀 Predict & Optimize", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
+tab1, tab2, tab3, tab4 = st.tabs(["🚀 Predict & Optimize", "⚔️ Creative Battle Royale", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
 
 with tab1:
     col1, col2 = st.columns([1, 2])
@@ -113,7 +113,7 @@ with tab1:
                     c1.metric("Scroll-Stop Rate", f"{df['ScrollStopRate'].mean():.1f}%")
                     c2.metric("Purchase Intent", f"{df['PurchaseIntent'].mean():.1f}%")
                     c3.metric("Clarity Score", f"{df['Clarity'].mean():.1f}%")
-                    c4.metric("Brand Recall", f"{df['BrandRecall'].mean():.1f}%")
+                    c4.metric("Viral Potential", f"{df['ViralPotential'].mean():.1f}%")
 
                     st.markdown("#### Predictive KPI Timeline")
                     st.line_chart(df.set_index("timestamp"))
@@ -131,6 +131,35 @@ with tab1:
             st.info("Upload content to unlock neurological insights.")
 
 with tab2:
+    st.header("⚔️ Creative Battle Royale")
+    st.markdown("Compare two ad variants to see which one will win the auction.")
+
+    col_v1, col_v2 = st.columns(2)
+
+    with col_v1:
+        st.subheader("Variant A")
+        file_a = st.file_uploader("Upload A", type=["mp4", "wav", "mp3"], key="v_a")
+
+    with col_v2:
+        st.subheader("Variant B")
+        file_b = st.file_uploader("Upload B", type=["mp4", "wav", "mp3"], key="v_b")
+
+    if st.button("🏆 Determine Winner", type="primary"):
+        if file_a and file_b:
+            with st.spinner("Simulating Multi-Variate Response..."):
+                try:
+                    params = {"media_type": "video", "age": age, "platform": platform}
+                    res_a = requests.post(f"{API_URL}/analyze", params=params, files={"file": file_a.getvalue()}).json()
+                    res_b = requests.post(f"{API_URL}/analyze", params=params, files={"file": file_b.getvalue()}).json()
+
+                    st.success(f"Battle Initialized: {res_a['task_id']} vs {res_b['task_id']}")
+                    st.info("Check back in 30 seconds for the winner's report.")
+                except:
+                    st.error("Battle failed. Check API.")
+        else:
+            st.warning("Upload both variants.")
+
+with tab3:
     st.header("🧠 Creative Optimization Strategy")
     if "active_results" in st.session_state:
         results_obj = st.session_state.active_results
@@ -153,7 +182,7 @@ with tab2:
     else:
         st.info("Run a prediction first to unlock creative strategy.")
 
-with tab3:
+with tab4:
     st.header("📉 Feedback Loop: Reality vs. Prediction")
     if "active_results" in st.session_state:
         res_obj = st.session_state.active_results

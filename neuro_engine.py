@@ -54,8 +54,15 @@ class NeuroEngine:
                 page = requests.get(file_path, timeout=10)
                 soup = BeautifulSoup(page.content, 'html.parser')
                 text = ' '.join([p.get_text() for p in soup.find_all('p')])
+
+                # 10x Enhanced: Scrape Headline and CTAs specifically
+                headlines = [h.get_text() for h in soup.find_all(['h1', 'h2'])]
+                cta_buttons = [b.get_text() for b in soup.find_all(['button', 'a']) if len(b.get_text()) < 50]
+
+                full_context = f"Headline: {' | '.join(headlines)}\nContent: {text}\nCTAs: {' | '.join(cta_buttons)}"
+
                 with open(temp_path, "w") as f:
-                    f.write(text)
+                    f.write(full_context)
                 df_events = self.model.get_events_dataframe(text_path=temp_path)
             except Exception as e:
                 if os.path.exists(temp_path): os.remove(temp_path)
@@ -117,6 +124,16 @@ class NeuroEngine:
             for i in range(n_steps)
         ]
 
+        # 10x Metrics
+        results["marketing_kpis"]["ViralPotential"] = [
+            min(100, (neuro["Emotion"][i] * 0.5 + neuro["VisualEngagement"][i] * 0.3 + (100 - neuro["CognitiveLoad"][i]) * 0.2))
+            for i in range(n_steps)
+        ]
+        results["marketing_kpis"]["ConversionFriction"] = [
+            max(0, min(100, (neuro["CognitiveLoad"][i] * 0.7 - neuro["Reward"][i] * 0.3)))
+            for i in range(n_steps)
+        ]
+
         # 3. Audience-Aware Weighting (Deterministic Calibration)
         if audience_params:
             results["marketing_kpis"] = self._apply_audience_weighting(
@@ -144,26 +161,38 @@ class NeuroEngine:
         return results
 
     def _apply_audience_weighting(self, kpis, params):
-        """Deterministically adjust KPIs based on audience parameters."""
-        # Example: Gen Z (18-24) has higher attention volatility (lower ScrollStop baseline)
-        # TikTok platform requires higher VisualEngagement (Reward for visuals)
-
+        """Deterministically adjust KPIs based on audience psychographics."""
         age = params.get("age", "25-34")
         platform = params.get("platform", "Meta")
+        industry = params.get("industry", "D2C")
+        awareness = params.get("awareness", "Cold")
 
         adjusted = {}
         for kpi_name, values in kpis.items():
-            multiplier = 1.0
+            # Interaction effects for 10x Precision
+            multipliers = []
 
-            if kpi_name == "ScrollStopRate":
-                if age == "18-24": multiplier *= 0.85 # Harder to stop the scroll
-                if platform == "TikTok": multiplier *= 0.9 # Even harder
+            # Platform & Age interaction (The "TikTok/Gen Z" multiplier)
+            if platform == "TikTok" and age == "18-24":
+                if kpi_name == "ScrollStopRate": multipliers.append(0.75) # Brutal competition
+                if kpi_name == "ViralPotential": multipliers.append(1.3) # Higher upside
 
-            if kpi_name == "PurchaseIntent":
-                if params.get("awareness") == "Hot": multiplier *= 1.2
-                if params.get("awareness") == "Cold": multiplier *= 0.8
+            # B2B/LinkedIn Friction sensitivity
+            if platform == "LinkedIn" or industry == "SaaS":
+                if kpi_name == "Clarity": multipliers.append(1.2) # Clarity is king in B2B
+                if kpi_name == "ConversionFriction": multipliers.append(1.1)
 
-            adjusted[kpi_name] = [min(100, v * multiplier) for v in values]
+            # Awareness Level calibration
+            if awareness == "Cold":
+                if kpi_name == "PurchaseIntent": multipliers.append(0.7)
+                if kpi_name == "ScrollStopRate": multipliers.append(1.1) # Hook is everything
+            elif awareness == "Hot":
+                if kpi_name == "PurchaseIntent": multipliers.append(1.4)
+                if kpi_name == "BrandRecall": multipliers.append(1.2)
+
+            # Compute final multiplier
+            final_m = np.prod(multipliers) if multipliers else 1.0
+            adjusted[kpi_name] = [min(100, v * final_m) for v in values]
 
         return adjusted
 

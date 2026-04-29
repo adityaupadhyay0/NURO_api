@@ -15,9 +15,14 @@ class GeminiConsultant:
         if not self.model:
             return "Gemini API key not configured. Please add GEMINI_API_KEY to environment."
 
-        # Simplify results for prompt
+        audience_params = audience_params or {}
+
+        # Simplify results for prompt with safety checks
         summary = {
-            "marketing_kpis": {k: f"{sum(v)/len(v):.1f}%" for k, v in results["marketing_kpis"].items()},
+            "marketing_kpis": {
+                k: f"{sum(v)/len(v) if v else 0:.1f}%"
+                for k, v in results.get("marketing_kpis", {}).items()
+            },
             "winning_probability": f"{results.get('winning_probability', 0):.1f}%",
             "moi_peaks": results.get("moi_analysis", [])
         }
@@ -32,11 +37,14 @@ class GeminiConsultant:
         Task:
         1. Winning Probability Assessment: Explain why this ad has this specific winning probability for THIS audience.
         2. Neuro-Gap Analysis: Identify which marketing KPI is the bottleneck (e.g., is it failing to stop the scroll or failing to build purchase intent?).
-        3. 3 Actionable Creative Refinements: Provide specific 'Hooks' or 'Visual Changes' to improve the bottleneck KPI.
+        3. The '10x Winner' Creative Brief:
+           - New Hook: Provide 2 alternative high-attention hooks.
+           - Visual Script: Describe a 5-second 'Scroll-Stop' sequence.
+           - CTA Optimization: How to reduce Conversion Friction at the end.
         4. Platform Optimization: Suggest how to adapt this specific creative for {audience_params.get('platform', 'the platform')} to maximize ROI.
         5. AI Prompt: Give a Midjourney or Runway Gen-2 prompt to create a more 'Attention-Grabbing' version of this creative.
 
-        Be aggressive, ROI-focused, and use performance marketing terminology (Scroll-stop, Hook, ROAS, CPA).
+        Format the response using Markdown with bold headers. Be aggressive, ROI-focused, and use performance marketing terminology (Scroll-stop, Hook, ROAS, CPA).
         """
 
         try:

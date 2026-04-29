@@ -6,6 +6,9 @@
 - [x] **Creative Strategy Consultant:** Gemini-powered actionable hooks and variants based on neuro-gaps.
 - [x] **Feedback Loop (v1):** Manual entry for real-world CTR and CPA to calibrate predictions.
 - [x] **Performance Workspace UI:** Streamlit dashboard focused on marketing outcomes.
+- [x] **Creative Battle Royale:** Side-by-side variant comparison mode.
+- [x] **10x Marketing Metrics:** Viral Potential and Conversion Friction tracking.
+- [x] **10x URL-to-Neuro:** Headline and CTA-specific persuasion scraping.
 
 ## Phase 2: Scale & Intelligence (v1)
 - [ ] **Batch Analysis:** Upload 50+ creatives and rank them by winning probability.
