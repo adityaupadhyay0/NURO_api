@@ -16,9 +16,27 @@ class AnalysisTask(Base):
     campaign_id = Column(Integer, ForeignKey('campaigns.id'))
     media_type = Column(String)
     file_path = Column(String)
+
+    # Audience Parameters (MMP)
+    audience_age = Column(String, nullable=True)
+    audience_platform = Column(String, nullable=True)
+    audience_industry = Column(String, nullable=True)
+    audience_awareness = Column(String, nullable=True)
+
     status = Column(String, default="processing")
-    results = Column(JSON, nullable=True)
+    results = Column(JSON, nullable=True) # Predicted Neuro & Marketing KPIs
     ai_advice = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+
+class MarketingResult(Base):
+    __tablename__ = 'marketing_results'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    task_id = Column(String, ForeignKey('analysis_tasks.id'))
+    ctr = Column(Float, nullable=True)
+    cpc = Column(Float, nullable=True)
+    cpa = Column(Float, nullable=True)
+    conversion_rate = Column(Float, nullable=True)
+    notes = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
 
 # Database Setup

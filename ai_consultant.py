@@ -11,29 +11,32 @@ class GeminiConsultant:
         else:
             self.model = None
 
-    def get_strategic_advice(self, neuro_results):
+    def get_strategic_advice(self, results, audience_params=None):
         if not self.model:
             return "Gemini API key not configured. Please add GEMINI_API_KEY to environment."
 
         # Simplify results for prompt
         summary = {
-            "metrics": {k: f"{sum(v)/len(v):.1f}%" for k, v in neuro_results["metrics"].items()},
-            "moi_peaks": neuro_results.get("moi_analysis", [])
+            "marketing_kpis": {k: f"{sum(v)/len(v):.1f}%" for k, v in results["marketing_kpis"].items()},
+            "winning_probability": f"{results.get('winning_probability', 0):.1f}%",
+            "moi_peaks": results.get("moi_analysis", [])
         }
 
         prompt = f"""
-        As a world-class Neuromarketing Creative Director, analyze these brain response results from a TRIBE v2 foundation model:
+        As a world-class Performance Marketing Creative Strategist, analyze these predictive brain response results for the following target audience:
+        Target Audience: {json.dumps(audience_params, indent=2)}
 
-        Neural Metrics Summary:
+        Predictive Performance Summary:
         {json.dumps(summary, indent=2)}
 
         Task:
-        1. Interpret what these brain signals mean for consumer behavior.
-        2. Identify specific 'Moments of Impact' that worked or failed.
-        3. Provide 3 actionable creative recommendations to improve 'Purchase Intent' (Reward ROI) and 'Attention'.
-        4. Suggest a specific generative AI prompt for an image/video tool that would fix the weakest segment.
+        1. Winning Probability Assessment: Explain why this ad has this specific winning probability for THIS audience.
+        2. Neuro-Gap Analysis: Identify which marketing KPI is the bottleneck (e.g., is it failing to stop the scroll or failing to build purchase intent?).
+        3. 3 Actionable Creative Refinements: Provide specific 'Hooks' or 'Visual Changes' to improve the bottleneck KPI.
+        4. Platform Optimization: Suggest how to adapt this specific creative for {audience_params.get('platform', 'the platform')} to maximize ROI.
+        5. AI Prompt: Give a Midjourney or Runway Gen-2 prompt to create a more 'Attention-Grabbing' version of this creative.
 
-        Be concise, professional, and data-driven.
+        Be aggressive, ROI-focused, and use performance marketing terminology (Scroll-stop, Hook, ROAS, CPA).
         """
 
         try:

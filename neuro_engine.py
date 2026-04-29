@@ -35,8 +35,8 @@ class NeuroEngine:
             "VisualEngagement": [2, 11, 45]
         }
 
-    def analyze_media(self, file_path, media_type="video"):
-        print(f"Analyzing {media_type}: {file_path}")
+    def analyze_media(self, file_path, media_type="video", audience_params=None):
+        print(f"Analyzing {media_type}: {file_path} for audience: {audience_params}")
 
         if media_type == "video":
             df_events = self.model.get_events_dataframe(video_path=file_path)
@@ -67,42 +67,71 @@ class NeuroEngine:
         # TRIBE v2 predicts on fsaverage5: (n_timesteps, 20484)
         # where the first 10242 vertices are Left Hem, and next 10242 are Right Hem.
 
-        return self._process_predictions(preds, segments)
+        return self._process_predictions(preds, segments, audience_params)
 
-    def _process_predictions(self, preds, segments):
+    def _process_predictions(self, preds, segments, audience_params=None):
         if isinstance(preds, torch.Tensor):
             preds = preds.detach().cpu().numpy()
 
-        n_lh = 10242
         results = {
             "timestamps": segments["onset"].tolist(),
-            "metrics": {}
+            "neuro_metrics": {},
+            "marketing_kpis": {}
         }
 
-        # Scientific ROI extraction across both hemispheres
+        # 1. Scientific ROI extraction (Neuro Metrics)
         for metric_name, indices in self.roi_map.items():
             lh_mask = np.isin(self.left_atlas, indices)
             rh_mask = np.isin(self.right_atlas, indices)
-
-            # Combine to full-brain mask (20484 vertices)
             full_mask = np.concatenate([lh_mask, rh_mask])
 
-            # Ensure mask alignment
             if full_mask.shape[0] != preds.shape[1]:
-                # Fallback if model output shape differs (should not on fsaverage5)
                 full_mask = full_mask[:preds.shape[1]]
 
-            # Mean activation for the metric
             metric_series = preds[:, full_mask].mean(axis=1)
-            results["metrics"][metric_name] = self._normalize(metric_series).tolist()
+            results["neuro_metrics"][metric_name] = self._normalize(metric_series).tolist()
 
-        # Spatial Peak for 3D mapping
-        peak_idx = results["metrics"]["Attention"].index(max(results["metrics"]["Attention"]))
-        results["spatial_peak"] = preds[peak_idx].tolist()
+        # 2. Map Neuro Metrics to Marketing KPIs
+        # Mapping Logic:
+        # Scroll-Stop Rate (Predicted) = Attention + VisualEngagement
+        # Purchase Intent Score = Reward + Emotion - CognitiveLoad
+        # Clarity Score = 100 - CognitiveLoad
+        # Brand Recall Index = Memory + Attention
+
+        neuro = results["neuro_metrics"]
+        n_steps = len(results["timestamps"])
+
+        results["marketing_kpis"]["ScrollStopRate"] = [
+            min(100, (neuro["Attention"][i] * 0.7 + neuro["VisualEngagement"][i] * 0.3))
+            for i in range(n_steps)
+        ]
+        results["marketing_kpis"]["PurchaseIntent"] = [
+            max(0, min(100, (neuro["Reward"][i] * 0.6 + neuro["Emotion"][i] * 0.4 - neuro["CognitiveLoad"][i] * 0.2)))
+            for i in range(n_steps)
+        ]
+        results["marketing_kpis"]["Clarity"] = [
+            100 - neuro["CognitiveLoad"][i] for i in range(n_steps)
+        ]
+        results["marketing_kpis"]["BrandRecall"] = [
+            min(100, (neuro["Memory"][i] * 0.8 + neuro["Attention"][i] * 0.2))
+            for i in range(n_steps)
+        ]
+
+        # 3. Audience-Aware Weighting (Deterministic Calibration)
+        if audience_params:
+            results["marketing_kpis"] = self._apply_audience_weighting(
+                results["marketing_kpis"],
+                audience_params
+            )
+
+        # Winning Probability Calculation (Aggregated)
+        pi = results["marketing_kpis"]["PurchaseIntent"]
+        ssr = results["marketing_kpis"]["ScrollStopRate"]
+        results["winning_probability"] = (sum(pi)/len(pi) * 0.7 + sum(ssr)/len(ssr) * 0.3)
 
         # MOI Analysis
         moi_events = []
-        emotion_vals = results["metrics"]["Emotion"]
+        emotion_vals = neuro["Emotion"]
         for i in range(1, len(emotion_vals) - 1):
             if emotion_vals[i] > 80 and emotion_vals[i] > emotion_vals[i-1]:
                 moi_events.append({
@@ -113,6 +142,30 @@ class NeuroEngine:
         results["moi_analysis"] = sorted(moi_events, key=lambda x: x['value'], reverse=True)[:5]
 
         return results
+
+    def _apply_audience_weighting(self, kpis, params):
+        """Deterministically adjust KPIs based on audience parameters."""
+        # Example: Gen Z (18-24) has higher attention volatility (lower ScrollStop baseline)
+        # TikTok platform requires higher VisualEngagement (Reward for visuals)
+
+        age = params.get("age", "25-34")
+        platform = params.get("platform", "Meta")
+
+        adjusted = {}
+        for kpi_name, values in kpis.items():
+            multiplier = 1.0
+
+            if kpi_name == "ScrollStopRate":
+                if age == "18-24": multiplier *= 0.85 # Harder to stop the scroll
+                if platform == "TikTok": multiplier *= 0.9 # Even harder
+
+            if kpi_name == "PurchaseIntent":
+                if params.get("awareness") == "Hot": multiplier *= 1.2
+                if params.get("awareness") == "Cold": multiplier *= 0.8
+
+            adjusted[kpi_name] = [min(100, v * multiplier) for v in values]
+
+        return adjusted
 
     def _normalize(self, series):
         s_min, s_max = series.min(), series.max()
