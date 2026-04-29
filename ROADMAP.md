@@ -12,12 +12,19 @@
 
 ## Phase 2: Scale & Intelligence (v1)
 - [ ] **Batch Analysis:** Upload 50+ creatives and rank them by winning probability.
+- [ ] **AI-Powered Hook Generator:** Direct text-to-ad script engine optimized for Scroll-Stop Rate.
+- [ ] **Predictive CPM Estimator:** Estimating auction friction based on audience/platform saturation.
+- [ ] **Simulated Heatmaps:** Visual overlays showing high-attention zones on images and videos.
 - [ ] **CSV Import/Export:** Standardized data handling for large campaign results.
 - [ ] **Competitive Intelligence:** "Spy" module to analyze public ad URLs and extract winning patterns.
-- [ ] **Early Personalization:** Automated variant generation for different audience segments.
+- [ ] **Neuromorphic Landing Page Optimizer:** Predictive CRO based on neuro-visual flow.
 
 ## Phase 3: Enterprise & Automation (Production)
+- [ ] **Neuro-Native Generation:** Integration with Flux/Runway to auto-generate creatives that hit specific neural peaks.
+- [ ] **Global Performance Benchmarks:** Compare your ads against a "Best in World" database of top-performing creatives.
 - [ ] **Platform Integrations:** Direct API connection to Meta Ads Manager and TikTok Creative Center.
 - [ ] **Automated Feedback Loop:** Real-time calibration of neural weights based on live campaign performance.
 - [ ] **Team Collaboration:** Shared workspaces, creative libraries, and approval workflows.
 - [ ] **Deep Customer Profiling:** Cluster-based audience modeling from historical performance data.
+- [ ] **Real-time Auction Bid Adjustment AI:** Linking neuro-certainty scores to automated bidding strategies.
+- [ ] **BCI Research Bridge:** Integration of actual EEG/fNIRS data for ground-truth model refinement.
