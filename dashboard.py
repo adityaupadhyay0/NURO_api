@@ -38,16 +38,22 @@ with st.sidebar:
         st.info("Start your first project.")
 
 # Application Navigation
-st.title("🧠 Neuromarketing Dashboard")
-tab1, tab2, tab3 = st.tabs(["🚀 Analysis", "📊 Strategic Insights", "🎓 Student Focus"])
+st.title("🧠 Performance Marketing Neuro-Predictor")
+tab1, tab2, tab3, tab4 = st.tabs(["🚀 Predict & Optimize", "⚔️ Creative Battle Royale", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
 
 with tab1:
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        st.header("Upload Creative")
-        st.markdown("Supported: Video (mp4), Audio (wav/mp3), Text, URLs.")
-        m_type = st.selectbox("Type", ["video", "audio", "text", "url"])
+        st.header("1. Define Target Audience")
+        age = st.selectbox("Age Range", ["18-24", "25-34", "35-44", "45-54", "55+"])
+        platform = st.selectbox("Platform", ["Meta", "TikTok", "YouTube", "LinkedIn", "Google Display"])
+        industry = st.selectbox("Industry", ["D2C", "SaaS", "Info Products", "Professional Services"])
+        awareness = st.selectbox("Awareness Level", ["Cold", "Warm", "Hot"])
+
+        st.divider()
+        st.header("2. Upload Creative")
+        m_type = st.selectbox("Media Type", ["video", "audio", "text", "url"])
 
         uploaded_file = None
         text_input = None
@@ -57,13 +63,20 @@ with tab1:
         else:
             text_input = st.text_area("Input Content or URL")
 
-        if st.button("🚀 Run Neuro-AI Analysis", type="primary"):
+        if st.button("🚀 Predict Winning Probability", type="primary"):
             files = None
-            params = {"media_type": m_type, "campaign_name": campaign_name}
+            params = {
+                "media_type": m_type,
+                "campaign_name": campaign_name,
+                "age": age,
+                "platform": platform,
+                "industry": industry,
+                "awareness": awareness
+            }
             if uploaded_file: files = {"file": uploaded_file.getvalue()}
             if text_input: params["text_content"] = text_input
 
-            with st.spinner("Decoding Neural Signals..."):
+            with st.spinner("Simulating Audience Response..."):
                 try:
                     response = requests.post(f"{API_URL}/analyze", params=params, files=files)
                     if response.status_code == 200:
@@ -86,17 +99,23 @@ with tab1:
                     st.rerun()
                 elif res["status"] == "completed":
                     data = res["data"]
-                    df = pd.DataFrame(data["metrics"])
+                    df = pd.DataFrame(data["marketing_kpis"])
                     df["timestamp"] = data["timestamps"]
 
-                    st.subheader("📊 Performance Summary")
+                    st.subheader("🎯 Predictive Performance Summary")
                     k1, k2, k3, k4 = st.columns(4)
-                    k1.metric("Purchase Reward", f"{df['Reward'].mean():.1f}%")
-                    k2.metric("Attention Hold", f"{df['Attention'].mean():.1f}%")
-                    k3.metric("Emotional Peak", f"{df['Emotion'].max():.1f}%")
-                    k4.metric("Cognitive Friction", f"{df['CognitiveLoad'].mean():.1f}%")
 
-                    st.markdown("#### Neural Timeline")
+                    # Winning Probability Large Gauge
+                    win_prob = data.get("winning_probability", 0)
+                    st.metric("Winning Probability", f"{win_prob:.1f}%", help="Likelihood of this ad outperforming the platform average.")
+
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Scroll-Stop Rate", f"{df['ScrollStopRate'].mean():.1f}%")
+                    c2.metric("Purchase Intent", f"{df['PurchaseIntent'].mean():.1f}%")
+                    c3.metric("Clarity Score", f"{df['Clarity'].mean():.1f}%")
+                    c4.metric("Viral Potential", f"{df['ViralPotential'].mean():.1f}%")
+
+                    st.markdown("#### Predictive KPI Timeline")
                     st.line_chart(df.set_index("timestamp"))
 
                     with st.expander("🔍 MOMENT-OF-IMPACT (MOI) PEAKS"):
@@ -112,19 +131,48 @@ with tab1:
             st.info("Upload content to unlock neurological insights.")
 
 with tab2:
-    st.header("🧠 AI Strategic Consulting (Gemini)")
+    st.header("⚔️ Creative Battle Royale")
+    st.markdown("Compare two ad variants to see which one will win the auction.")
+
+    col_v1, col_v2 = st.columns(2)
+
+    with col_v1:
+        st.subheader("Variant A")
+        file_a = st.file_uploader("Upload A", type=["mp4", "wav", "mp3"], key="v_a")
+
+    with col_v2:
+        st.subheader("Variant B")
+        file_b = st.file_uploader("Upload B", type=["mp4", "wav", "mp3"], key="v_b")
+
+    if st.button("🏆 Determine Winner", type="primary"):
+        if file_a and file_b:
+            with st.spinner("Simulating Multi-Variate Response..."):
+                try:
+                    params = {"media_type": "video", "age": age, "platform": platform}
+                    res_a = requests.post(f"{API_URL}/analyze", params=params, files={"file": file_a.getvalue()}).json()
+                    res_b = requests.post(f"{API_URL}/analyze", params=params, files={"file": file_b.getvalue()}).json()
+
+                    st.success(f"Battle Initialized: {res_a['task_id']} vs {res_b['task_id']}")
+                    st.info("Check back in 30 seconds for the winner's report.")
+                except:
+                    st.error("Battle failed. Check API.")
+        else:
+            st.warning("Upload both variants.")
+
+with tab3:
+    st.header("🧠 Creative Optimization Strategy")
     if "active_results" in st.session_state:
         results_obj = st.session_state.active_results
 
         st.markdown(f'<div class="ai-card">{results_obj.get("ai_advice", "Analyzing neuro-correlations...")}</div>', unsafe_allow_html=True)
 
         st.divider()
-        st.subheader("💬 Ask Gemini About This Data")
+        st.subheader("💬 Ask Your Creative Strategist")
         if "chat" not in st.session_state: st.session_state.chat = []
         for m in st.session_state.chat:
             with st.chat_message(m["role"]): st.markdown(m["content"])
 
-        if prompt := st.chat_input("How do I improve the Reward signal in the middle?"):
+        if prompt := st.chat_input("How do I improve the Scroll-Stop rate?"):
             st.session_state.chat.append({"role": "user", "content": prompt})
             with st.chat_message("user"): st.markdown(prompt)
             with st.spinner("Gemini is interpreting..."):
@@ -132,27 +180,44 @@ with tab2:
                 st.session_state.chat.append({"role": "assistant", "content": chat_res["response"]})
                 with st.chat_message("assistant"): st.markdown(chat_res["response"])
     else:
-        st.info("Run an analysis first to unlock AI consulting.")
+        st.info("Run a prediction first to unlock creative strategy.")
 
-with tab3:
-    st.header("🎓 Student Focus Dashboard")
+with tab4:
+    st.header("📉 Feedback Loop: Reality vs. Prediction")
     if "active_results" in st.session_state:
-        df = pd.DataFrame(st.session_state.active_results["data"]["metrics"])
-        # Student Focus Index = Attention / Cognitive Load ratio
-        focus_score = (df['Attention'].mean() / df['CognitiveLoad'].mean()) * 10
+        res_obj = st.session_state.active_results
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Student Focus Index", f"{focus_score:.1f}/10")
-        c2.metric("Concept Retention", f"{df['Memory'].mean():.1f}%")
-        c3.metric("Engagement Stability", f"{df['Attention'].std():.1f}")
+        col_a, col_b = st.columns(2)
 
-        st.subheader("Engagement Heatmap")
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(df['Attention'], label='Focus (Attention)', color='teal')
-        ax.fill_between(range(len(df)), df['CognitiveLoad'], alpha=0.2, label='Friction (Cognitive Load)', color='red')
-        ax.legend()
-        st.pyplot(fig)
+        with col_a:
+            st.subheader("1. Enter Real Performance")
+            with st.form("market_results"):
+                ctr = st.number_input("Real CTR (%)", min_value=0.0, max_value=100.0, step=0.1)
+                cpa = st.number_input("Real CPA ($)", min_value=0.0, step=0.01)
+                notes = st.text_area("Campaign Notes")
+                submit = st.form_submit_button("Save Results")
 
-        st.markdown(f'<div class="ai-card">📚 <b>Edu-Insight (AI):</b> Based on your data, your content has a Focus Index of {focus_score:.1f}. Try reducing complexity during spikes in Cognitive Load to increase retention.</div>', unsafe_allow_html=True)
+                if submit:
+                    payload = {"task_id": res_obj["task_id"], "ctr": ctr, "cpa": cpa, "notes": notes}
+                    resp = requests.post(f"{API_URL}/submit_results", json=payload)
+                    if resp.status_code == 200:
+                        st.success("Results saved! The system is learning.")
+                    else:
+                        st.error("Failed to save results.")
+
+        with col_b:
+            st.subheader("2. Performance Calibration")
+            actuals = res_obj.get("marketing_actuals")
+            if actuals and actuals.get("ctr"):
+                predicted_ctr = np.mean(res_obj["data"]["marketing_kpis"]["ScrollStopRate"]) / 20 # Rough scaling
+                diff = actuals["ctr"] - predicted_ctr
+
+                st.metric("Prediction Variance (CTR)", f"{diff:+.2f}%")
+                if abs(diff) < 0.5:
+                    st.success("Prediction was HIGHLY ACCURATE.")
+                else:
+                    st.warning("Prediction vs Reality Gap detected. Gemini is analyzing...")
+            else:
+                st.info("Enter market data to see calibration.")
     else:
-        st.info("Upload educational content to view student analytics.")
+        st.info("Predict a creative first.")

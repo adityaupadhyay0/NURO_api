@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from neuro_engine import NeuroEngine
 from ai_consultant import GeminiConsultant
-from database import SessionLocal, AnalysisTask, Campaign
+from database import SessionLocal, AnalysisTask, Campaign, MarketingResult
 
 app = FastAPI(title="NeuroMark Pro 10x API")
 
@@ -24,22 +24,30 @@ class AnalysisResponse(BaseModel):
     task_id: str
     status: str
 
+class MarketingResultIn(BaseModel):
+    task_id: str
+    ctr: float
+    cpc: float = None
+    cpa: float = None
+    conversion_rate: float = None
+    notes: str = None
+
 def get_engine():
     global engine
     if engine is None:
         engine = NeuroEngine()
     return engine
 
-def run_inference_task(task_id: str, file_path: str, media_type: str):
+def run_inference_task(task_id: str, file_path: str, media_type: str, audience_params: dict):
     db = SessionLocal()
     task = db.query(AnalysisTask).filter(AnalysisTask.id == task_id).first()
 
     try:
         eng = get_engine()
-        results = eng.analyze_media(file_path, media_type=media_type)
+        results = eng.analyze_media(file_path, media_type=media_type, audience_params=audience_params)
 
         # 10x Enhanced: Get Strategic AI Advice from Gemini
-        ai_advice = consultant.get_strategic_advice(results)
+        ai_advice = consultant.get_strategic_advice(results, audience_params)
 
         # Update Database
         task.results = results
@@ -60,7 +68,11 @@ async def analyze_media(
     media_type: str,
     file: UploadFile = File(None),
     text_content: str = None,
-    campaign_name: str = "Default Campaign"
+    campaign_name: str = "Default Campaign",
+    age: str = "25-34",
+    platform: str = "Meta",
+    industry: str = "D2C",
+    awareness: str = "Cold"
 ):
     task_id = str(uuid.uuid4())
     db = SessionLocal()
@@ -88,24 +100,30 @@ async def analyze_media(
         db.close()
         raise HTTPException(status_code=400, detail="Missing input")
 
-    # Initial task entry
+    # Initial task entry with Audience Params
     new_task = AnalysisTask(
         id=task_id,
         campaign_id=campaign.id,
         media_type=media_type,
-        file_path=file_path
+        file_path=file_path,
+        audience_age=age,
+        audience_platform=platform,
+        audience_industry=industry,
+        audience_awareness=awareness
     )
     db.add(new_task)
     db.commit()
     db.close()
 
-    background_tasks.add_task(run_inference_task, task_id, file_path, media_type)
+    audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness}
+    background_tasks.add_task(run_inference_task, task_id, file_path, media_type, audience_params)
     return AnalysisResponse(task_id=task_id, status="processing")
 
 @app.get("/results/{task_id}")
 async def get_results(task_id: str):
     db = SessionLocal()
     task = db.query(AnalysisTask).filter(AnalysisTask.id == task_id).first()
+    marketing_result = db.query(MarketingResult).filter(MarketingResult.task_id == task_id).first()
     db.close()
 
     if not task:
@@ -115,9 +133,35 @@ async def get_results(task_id: str):
         "task_id": task.id,
         "status": task.status,
         "media_type": task.media_type,
+        "audience": {
+            "age": task.audience_age,
+            "platform": task.audience_platform,
+            "industry": task.audience_industry,
+            "awareness": task.audience_awareness
+        },
         "data": task.results,
-        "ai_advice": task.ai_advice
+        "ai_advice": task.ai_advice,
+        "marketing_actuals": {
+            "ctr": marketing_result.ctr if marketing_result else None,
+            "cpa": marketing_result.cpa if marketing_result else None
+        } if marketing_result else None
     }
+
+@app.post("/submit_results")
+async def submit_marketing_results(res: MarketingResultIn):
+    db = SessionLocal()
+    new_res = MarketingResult(
+        task_id=res.task_id,
+        ctr=res.ctr,
+        cpc=res.cpc,
+        cpa=res.cpa,
+        conversion_rate=res.conversion_rate,
+        notes=res.notes
+    )
+    db.add(new_res)
+    db.commit()
+    db.close()
+    return {"status": "success"}
 
 @app.get("/campaigns")
 async def get_campaigns():
