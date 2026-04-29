@@ -190,6 +190,15 @@ class NeuroEngine:
                 if kpi_name == "PurchaseIntent": multipliers.append(1.4)
                 if kpi_name == "BrandRecall": multipliers.append(1.2)
 
+            # 10x Industry Psychographics
+            if industry == "Info Products":
+                if kpi_name == "PurchaseIntent": multipliers.append(1.15)
+                if kpi_name == "Emotion": multipliers.append(1.1) # Hype matters
+
+            if industry == "Professional Services":
+                if kpi_name == "BrandRecall": multipliers.append(1.3)
+                if kpi_name == "Clarity": multipliers.append(1.2)
+
             # Compute final multiplier
             final_m = np.prod(multipliers) if multipliers else 1.0
             adjusted[kpi_name] = [min(100, v * final_m) for v in values]
