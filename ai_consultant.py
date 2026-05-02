@@ -53,11 +53,11 @@ class GeminiConsultant:
         except Exception as e:
             return f"AI Consultant Error: {str(e)}"
 
-    def chat_with_neuro_data(self, query, neuro_results):
+    def chat_with_neuro_data(self, query, results):
         if not self.model:
             return "Gemini API key not configured."
 
-        context = f"Neural Data Context: {json.dumps(neuro_results['metrics'], indent=2)}"
+        context = f"Neural Data Context: {json.dumps(results.get('marketing_kpis', {}), indent=2)}"
         full_query = f"{context}\n\nUser Question: {query}\n\nExpert Neuro-Response:"
 
         try:
@@ -65,3 +65,28 @@ class GeminiConsultant:
             return response.text
         except Exception as e:
             return f"Chat Error: {str(e)}"
+
+    def generate_high_performance_hooks(self, product_desc, audience_params):
+        if not self.model:
+            return "Gemini API key not configured."
+
+        prompt = f"""
+        As a 10x Performance Marketer, generate 5 high-attention 'Scroll-Stopping' hooks for this product:
+        Product: {product_desc}
+        Target Audience: {json.dumps(audience_params)}
+
+        Requirements:
+        - Must be optimized for {audience_params.get('platform', 'the platform')}.
+        - Focus on psychological triggers: Curiosity, Fear of Missing Out, or Direct Benefit.
+        - Keep each hook under 15 words.
+        - Provide a brief 'Why it works' for each.
+
+        Format:
+        1. [Hook Text] - (Reasoning)
+        """
+
+        try:
+            response = self.model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            return f"Hook Gen Error: {str(e)}"

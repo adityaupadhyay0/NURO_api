@@ -39,7 +39,7 @@ with st.sidebar:
 
 # Application Navigation
 st.title("🧠 Performance Marketing Neuro-Predictor")
-tab1, tab2, tab3, tab4 = st.tabs(["🚀 Predict & Optimize", "⚔️ Creative Battle Royale", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
+tab1, tab_batch, tab_hooks, tab2, tab3, tab4 = st.tabs(["🚀 Predict & Optimize", "📊 Batch Ranking", "✍️ Hook Generator", "⚔️ Creative Battle Royale", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
 
 with tab1:
     col1, col2 = st.columns([1, 2])
@@ -129,6 +129,85 @@ with tab1:
                 st.info("Loading results...")
         else:
             st.info("Upload content to unlock neurological insights.")
+
+with tab_hooks:
+    st.header("✍️ AI Scroll-Stop Hook Generator")
+    st.markdown("Generate 10x hooks tailored to your audience's neural profile.")
+
+    p_desc = st.text_area("Product/Offer Description", "A luxury skincare brand that reduces wrinkles in 7 days.")
+
+    if st.button("✨ Generate Viral Hooks", type="primary"):
+        with st.spinner("Gemini is crafting hooks..."):
+            try:
+                h_res = requests.post(f"{API_URL}/generate_hooks", params={
+                    "product_desc": p_desc,
+                    "age": age,
+                    "platform": platform,
+                    "industry": industry
+                }).json()
+                st.markdown(f'<div class="ai-card">{h_res["hooks"]}</div>', unsafe_allow_html=True)
+            except:
+                st.error("Hook generation failed.")
+
+with tab_batch:
+    st.header("📊 Batch Creative Ranking")
+    st.markdown("Upload up to 100 creatives to find the winner before you spend.")
+
+    with st.expander("⚙️ Batch Audience Settings", expanded=True):
+        b_age = st.selectbox("Batch Age", ["18-24", "25-34", "35-44", "45-54", "55+"], key="b_age")
+        b_plat = st.selectbox("Batch Platform", ["Meta", "TikTok", "YouTube", "LinkedIn"], key="b_plat")
+        b_ind = st.selectbox("Batch Industry", ["D2C", "SaaS", "Info Products"], key="b_ind")
+
+    batch_files = st.file_uploader("Upload Creatives", type=["mp4", "wav", "mp3"], accept_multiple_files=True)
+
+    if st.button("🏆 Start Batch Ranking", type="primary"):
+        if batch_files:
+            files_payload = [("files", (f.name, f.getvalue())) for f in batch_files]
+            params = {
+                "media_type": "video",
+                "campaign_name": f"Batch_{int(time.time())}",
+                "age": b_age,
+                "platform": b_plat,
+                "industry": b_ind
+            }
+            with st.spinner("Processing Batch Analysis (High-Throughput Mode)..."):
+                try:
+                    res = requests.post(f"{API_URL}/analyze_batch", params=params, files=files_payload)
+                    if res.status_code == 200:
+                        st.success(f"Batch started with {len(batch_files)} tasks.")
+                        st.session_state.batch_task_ids = res.json()["task_ids"]
+                    else:
+                        st.error(f"Batch failed: {res.text}")
+                except Exception as e:
+                    st.error(f"Connection error: {e}")
+
+    if "batch_task_ids" in st.session_state:
+        st.divider()
+        st.subheader("🏆 Winning Probability Leaderboard")
+
+        leaderboard_data = []
+        for t_id in st.session_state.batch_task_ids:
+            try:
+                r = requests.get(f"{API_URL}/results/{t_id}").json()
+                if r["status"] == "completed":
+                    leaderboard_data.append({
+                        "Creative ID": t_id[:8],
+                        "Win Prob %": r["data"]["winning_probability"],
+                        "Scroll-Stop": np.mean(r["data"]["marketing_kpis"]["ScrollStopRate"]),
+                        "Purchase Intent": np.mean(r["data"]["marketing_kpis"]["PurchaseIntent"])
+                    })
+            except:
+                continue
+
+        if leaderboard_data:
+            ldf = pd.DataFrame(leaderboard_data).sort_values("Win Prob %", ascending=False)
+            st.table(ldf)
+
+            winner = ldf.iloc[0]
+            st.balloons()
+            st.success(f"🥇 **WINNER DETECTED:** Creative {winner['Creative ID']} is most likely to win the auction.")
+        else:
+            st.info("Analysis in progress... Refresh to see results.")
 
 with tab2:
     st.header("⚔️ Creative Battle Royale")

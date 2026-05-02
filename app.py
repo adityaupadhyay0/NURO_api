@@ -119,6 +119,59 @@ async def analyze_media(
     background_tasks.add_task(run_inference_task, task_id, file_path, media_type, audience_params)
     return AnalysisResponse(task_id=task_id, status="processing")
 
+@app.post("/analyze_batch")
+async def analyze_batch(
+    background_tasks: BackgroundTasks,
+    media_type: str,
+    files: list[UploadFile] = File(...),
+    campaign_name: str = "Batch Campaign",
+    age: str = "25-34",
+    platform: str = "Meta",
+    industry: str = "D2C",
+    awareness: str = "Cold"
+):
+    task_ids = []
+    db = SessionLocal()
+
+    campaign = db.query(Campaign).filter(Campaign.name == campaign_name).first()
+    if not campaign:
+        campaign = Campaign(name=campaign_name)
+        db.add(campaign)
+        db.commit()
+        db.refresh(campaign)
+
+    audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness}
+
+    for file in files:
+        task_id = str(uuid.uuid4())
+        file_path = os.path.join(UPLOAD_DIR, f"{task_id}_{file.filename}")
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        new_task = AnalysisTask(
+            id=task_id,
+            campaign_id=campaign.id,
+            media_type=media_type,
+            file_path=file_path,
+            audience_age=age,
+            audience_platform=platform,
+            audience_industry=industry,
+            audience_awareness=awareness
+        )
+        db.add(new_task)
+        task_ids.append(task_id)
+        background_tasks.add_task(run_inference_task, task_id, file_path, media_type, audience_params)
+
+    db.commit()
+    db.close()
+    return {"task_ids": task_ids, "status": "processing"}
+
+@app.post("/generate_hooks")
+async def generate_hooks(product_desc: str, age: str, platform: str, industry: str):
+    audience_params = {"age": age, "platform": platform, "industry": industry}
+    hooks = consultant.generate_high_performance_hooks(product_desc, audience_params)
+    return {"hooks": hooks}
+
 @app.get("/results/{task_id}")
 async def get_results(task_id: str):
     db = SessionLocal()

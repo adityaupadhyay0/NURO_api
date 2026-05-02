@@ -5,9 +5,11 @@ from tribev2 import TribeModel
 from nilearn import datasets
 import os
 import uuid
+import threading
 
 class NeuroEngine:
     def __init__(self, model_id="facebook/tribev2"):
+        self.lock = threading.Lock()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Initializing NeuroEngine on {self.device}...")
         self.model = TribeModel.from_pretrained(model_id)
@@ -38,6 +40,10 @@ class NeuroEngine:
     def analyze_media(self, file_path, media_type="video", audience_params=None):
         print(f"Analyzing {media_type}: {file_path} for audience: {audience_params}")
 
+        with self.lock:
+            return self._run_analysis(file_path, media_type, audience_params)
+
+    def _run_analysis(self, file_path, media_type, audience_params):
         if media_type == "video":
             df_events = self.model.get_events_dataframe(video_path=file_path)
         elif media_type == "audio":
