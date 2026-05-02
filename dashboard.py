@@ -118,9 +118,10 @@ with tab1:
                     st.metric("Predicted Auction CPM", data.get("predicted_cpm", "$0.00"), help="Estimated cost per 1000 impressions based on segment competition.")
 
                     if "creative_fatigue" in data:
-                        k1, k2 = st.columns(2)
+                        k1, k2, k3 = st.columns(3)
                         k1.metric("Fatigue Index", f"{data['creative_fatigue']['fatigue_index']:.1f}/100")
                         k2.metric("Est. Ad Life", f"{data['creative_fatigue']['estimated_days']} Days")
+                        k3.metric("Creative Vibe", data.get("vibe_analysis", "Neutral"))
 
                     st.markdown("#### Predictive KPI Timeline")
                     st.line_chart(df.set_index("timestamp"))
@@ -172,6 +173,10 @@ with tab_spy:
                 col_s2.metric("Predicted Conversion Intent", f"{spy_res['data']['marketing_kpis']['PurchaseIntent'][0]:.1f}%")
 
                 st.markdown(f'<div class="ai-card"><b>Secret Sauce (AI Analysis):</b><br>{spy_res["ai_advice"]}</div>', unsafe_allow_html=True)
+
+                if "cro_report" in spy_res["data"]:
+                    st.subheader("🚀 Predictive CRO Optimizer")
+                    st.markdown(f'<div class="ai-card" style="border-left-color: #10b981;">{spy_res["data"]["cro_report"]}</div>', unsafe_allow_html=True)
             else:
                 st.info("Spying in progress...")
         except:

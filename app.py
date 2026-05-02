@@ -50,6 +50,11 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
         ai_advice = consultant.get_strategic_advice(results, audience_params)
         results["predicted_cpm"] = consultant.estimate_cpm(audience_params)
 
+        # 10x Enhanced: CRO for Landing Pages
+        if media_type == "url":
+             # We should fetch the scraped text from NeuroEngine if possible, or assume results has it
+             results["cro_report"] = consultant.analyze_landing_page_cro(file_path, audience_params)
+
         # Update Database
         task.results = results
         task.ai_advice = ai_advice

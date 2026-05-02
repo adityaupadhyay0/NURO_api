@@ -86,6 +86,28 @@ class GeminiConsultant:
         except:
             return "Estimation Unavailable"
 
+    def analyze_landing_page_cro(self, scrape_data, audience_params):
+        if not self.model:
+            return "Gemini API key not configured."
+
+        prompt = f"""
+        As a world-class Conversion Rate Optimization (CRO) Expert, analyze this landing page data:
+        Scraped Context: {scrape_data}
+        Target Audience: {json.dumps(audience_params)}
+
+        Provide a 'Predictive CRO Report':
+        1. Visual Flow: How does the attention flow from headline to CTA?
+        2. Friction Points: What is causing cognitive load or hesitation?
+        3. 3 High-Impact Changes: What specific copy or layout changes will increase CR by 10x?
+
+        Be data-driven and aggressive.
+        """
+        try:
+            response = self.model.generate_content(prompt)
+            return response.text
+        except:
+            return "CRO Analysis Unavailable"
+
     def generate_high_performance_hooks(self, product_desc, audience_params):
         if not self.model:
             return "Gemini API key not configured."

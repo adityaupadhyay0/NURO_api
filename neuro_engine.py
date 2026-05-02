@@ -173,6 +173,14 @@ class NeuroEngine:
             "estimated_days": max(3, 30 - int((avg_attention * 0.4 + avg_emotion * 0.6) / 4))
         }
 
+        # 10x Contextual 'Vibe' Extraction
+        vibe_scores = {
+            "Excitement": (neuro["Emotion"][peak_time_idx] * 0.6 + neuro["Reward"][peak_time_idx] * 0.4),
+            "Trust": (neuro["Memory"][peak_time_idx] * 0.7 + (100 - neuro["CognitiveLoad"][peak_time_idx]) * 0.3),
+            "Urgency": (neuro["Attention"][peak_time_idx] * 0.5 + neuro["CognitiveLoad"][peak_time_idx] * 0.5)
+        }
+        results["vibe_analysis"] = sorted(vibe_scores.items(), key=lambda x: x[1], reverse=True)[0][0]
+
         # MOI Analysis
         moi_events = []
         emotion_vals = neuro["Emotion"]
