@@ -40,7 +40,9 @@ class MarketingResult(Base):
     created_at = Column(DateTime, default=datetime.now)
 
 # Database Setup
-DB_PATH = "sqlite:///neuromark_pro.db"
+import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = f"sqlite:///{os.path.join(BASE_DIR, 'neuromark_pro.db')}"
 engine = create_engine(DB_PATH)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

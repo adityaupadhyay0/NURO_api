@@ -55,7 +55,11 @@ class NeuroEngine:
             from bs4 import BeautifulSoup
             # Fix Race Condition: Unique temp file per request
             u_id = str(uuid.uuid4())
-            temp_path = f"uploads/{u_id}_url.txt"
+            import os
+            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+            os.makedirs(UPLOAD_DIR, exist_ok=True)
+            temp_path = os.path.join(UPLOAD_DIR, f"{u_id}_url.txt")
             try:
                 page = requests.get(file_path, timeout=10)
                 soup = BeautifulSoup(page.content, 'html.parser')

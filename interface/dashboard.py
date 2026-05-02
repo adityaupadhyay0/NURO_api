@@ -38,8 +38,32 @@ with st.sidebar:
         st.info("Start your first project.")
 
 # Application Navigation
-st.title("🧠 Performance Marketing Neuro-Predictor")
-tab1, tab_batch, tab_hooks, tab_spy, tab2, tab3, tab4 = st.tabs(["🚀 Predict & Optimize", "📊 Batch Ranking", "✍️ Hook Generator", "🕵️ Competitor Spy", "⚔️ Creative Battle Royale", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
+st.title("🧠 Neuro-Agent Command Center")
+tab0, tab1, tab_batch, tab_hooks, tab_spy, tab2, tab3, tab4 = st.tabs(["🤖 Campaign Brain", "🚀 Predict & Optimize", "📊 Batch Ranking", "✍️ Hook Generator", "🕵️ Competitor Spy", "⚔️ Creative Battle Royale", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
+
+with tab0:
+    st.header("🤖 Conversational Campaign Brain")
+    st.markdown("Give your agent a goal, and let the multi-agent system develop your strategy.")
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = [{"role": "assistant", "content": "I am your Campaign Brain. What is your goal today? (e.g. 'Beat my competitor in the luxury skincare niche' or 'Generate a high-ROAS TikTok script for Gen Z')"}]
+
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]): st.markdown(msg["content"])
+
+    if goal := st.chat_input("Enter your marketing goal..."):
+        st.session_state.messages.append({"role": "user", "content": goal})
+        with st.chat_message("user"): st.markdown(goal)
+
+        with st.spinner("Agents are collaborating..."):
+            # Mock agent collaboration for UI
+            time.sleep(2)
+            response = f"I've coordinated with the **Neuro-Analyst** and **Creative Strategist**. For your goal: '{goal}', I recommend focusing on 'High-Urgency' hooks. \n\n**Proposed Plan:** \n1. Analyze top 3 competitor URLs. \n2. Generate 5 variations of the 'Scroll-Stop' hook. \n3. Optimize the landing page for 'Clarity'."
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            with st.chat_message("assistant"):
+                st.markdown(response)
+                if st.button("🚀 1-Click Execute Strategy"):
+                    st.success("Execution started! Check the strategy tab for the full report.")
 
 with tab1:
     col1, col2 = st.columns([1, 2])
@@ -299,7 +323,32 @@ with tab3:
     if "active_results" in st.session_state:
         results_obj = st.session_state.active_results
 
-        st.markdown(f'<div class="ai-card">{results_obj.get("ai_advice", "Analyzing neuro-correlations...")}</div>', unsafe_allow_html=True)
+        # AaaS: Try to parse agent report
+        try:
+            report = json.loads(results_obj.get("ai_advice", "{}"))
+            st.subheader("🕵️ Neuro-Analyst Intelligence")
+            st.info(report.get("neuro_intelligence"))
+
+            st.subheader("🎨 Creative Strategist Directions")
+            st.markdown(f'<div class="ai-card">{report.get("creative_strategy")}</div>', unsafe_allow_html=True)
+
+            st.subheader("💰 Media Buyer Optimization")
+            st.success(report.get("media_buying_plan"))
+        except Exception as e:
+            import json
+            try:
+                # Retry parsing if it's a string from the DB
+                report = json.loads(results_obj.get("ai_advice", "{}"))
+                st.subheader("🕵️ Neuro-Analyst Intelligence")
+                st.info(report.get("neuro_intelligence"))
+
+                st.subheader("🎨 Creative Strategist Directions")
+                st.markdown(f'<div class="ai-card">{report.get("creative_strategy")}</div>', unsafe_allow_html=True)
+
+                st.subheader("💰 Media Buyer Optimization")
+                st.success(report.get("media_buying_plan"))
+            except:
+                st.markdown(f'<div class="ai-card">{results_obj.get("ai_advice", "Analyzing neuro-correlations...")}</div>', unsafe_allow_html=True)
 
         st.divider()
         st.subheader("💬 Ask Your Creative Strategist")

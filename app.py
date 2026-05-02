@@ -5,15 +5,15 @@ import os
 import uuid
 import json
 from datetime import datetime
-from neuro_engine import NeuroEngine
-from ai_consultant import GeminiConsultant
-from database import SessionLocal, AnalysisTask, Campaign, MarketingResult
+from core.neuro_engine import NeuroEngine
+from services.brain_orchestrator import CampaignBrain
+from core.database import SessionLocal, AnalysisTask, Campaign, MarketingResult
 
 app = FastAPI(title="NeuroMark Pro 10x API")
 
 # Global instances
 engine = None
-consultant = GeminiConsultant() # API Key from env
+brain = CampaignBrain()
 
 UPLOAD_DIR = "uploads"
 RESULTS_DIR = "results"
@@ -46,18 +46,12 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
         eng = get_engine()
         results = eng.analyze_media(file_path, media_type=media_type, audience_params=audience_params)
 
-        # 10x Enhanced: Get Strategic AI Advice and CPM from Gemini
-        ai_advice = consultant.get_strategic_advice(results, audience_params)
-        results["predicted_cpm"] = consultant.estimate_cpm(audience_params)
-
-        # 10x Enhanced: CRO for Landing Pages
-        if media_type == "url":
-             # We should fetch the scraped text from NeuroEngine if possible, or assume results has it
-             results["cro_report"] = consultant.analyze_landing_page_cro(file_path, audience_params)
+        # AaaS Transformation: Run Multi-Agent Campaign Brain
+        brain_report = brain.run_campaign_optimization(results, audience_params, media_type, file_path)
 
         # Update Database
         task.results = results
-        task.ai_advice = ai_advice
+        task.ai_advice = json.dumps(brain_report) # Store full agent report
         task.status = "completed"
         db.commit()
 
@@ -175,7 +169,7 @@ async def analyze_batch(
 @app.post("/generate_hooks")
 async def generate_hooks(product_desc: str, age: str, platform: str, industry: str):
     audience_params = {"age": age, "platform": platform, "industry": industry}
-    hooks = consultant.generate_high_performance_hooks(product_desc, audience_params)
+    hooks = brain.strategist._generate(f"Generate 5 high-performance hooks for: {product_desc} targeting {json.dumps(audience_params)}")
     return {"hooks": hooks}
 
 @app.get("/results/{task_id}")
@@ -246,7 +240,8 @@ async def chat_with_neuro(task_id: str, query: str):
     if not task or task.status != "completed":
         raise HTTPException(status_code=400, detail="Results not ready for chat")
 
-    response = consultant.chat_with_neuro_data(query, task.results)
+    prompt = f"Using this neurological data: {json.dumps(task.results)}, answer this user query: {query}"
+    response = brain.strategist._generate(prompt)
     return {"response": response}
 
 @app.get("/health")
