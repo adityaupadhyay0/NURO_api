@@ -19,9 +19,9 @@
 - [x] **Simulated Heatmaps:** Visual overlays showing high-attention zones on images and videos.
     - *Subtask:* Implementation of vertex-level attention mapping.
 - [ ] **Contextual 'Vibe' Extraction:** Analyze background music and color palettes for emotional resonance.
-- [ ] **Predictive Creative Fatigue:** Forecast the exact moment (spend-based) when an ad will lose its neuro-effectiveness.
-- [ ] **CSV Import/Export:** Standardized data handling for large campaign results.
-- [ ] **Competitive Intelligence:** "Spy" module to analyze public ad URLs and extract winning patterns.
+- [x] **Predictive Creative Fatigue:** Forecast the exact moment (spend-based) when an ad will lose its neuro-effectiveness.
+- [x] **CSV Import/Export:** Standardized data handling for large campaign results.
+- [x] **Competitive Intelligence:** "Spy" module to analyze public ad URLs and extract winning patterns.
 - [ ] **Neuromorphic Landing Page Optimizer:** Predictive CRO based on neuro-visual flow.
 
 ## Phase 3: Enterprise & Automation (Production)
