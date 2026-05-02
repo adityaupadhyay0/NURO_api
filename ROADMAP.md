@@ -15,9 +15,9 @@
 - [x] **Batch Analysis (10x):** Upload 100+ creatives and rank them by 'Winning Probability' and 'Viral Upside'.
     - *Subtask:* Multi-threaded inference queuing for high-throughput.
 - [x] **AI-Powered Hook Generator:** Direct text-to-ad script engine optimized for Scroll-Stop Rate.
-- [ ] **Predictive CPM Estimator:** Estimating auction friction based on audience/platform saturation.
-- [ ] **Simulated Heatmaps:** Visual overlays showing high-attention zones on images and videos.
-    - *Subtask:* Implementation of vertex-to-pixel projection mapping.
+- [x] **Predictive CPM Estimator:** Estimating auction friction based on audience/platform saturation.
+- [x] **Simulated Heatmaps:** Visual overlays showing high-attention zones on images and videos.
+    - *Subtask:* Implementation of vertex-level attention mapping.
 - [ ] **Contextual 'Vibe' Extraction:** Analyze background music and color palettes for emotional resonance.
 - [ ] **Predictive Creative Fatigue:** Forecast the exact moment (spend-based) when an ad will lose its neuro-effectiveness.
 - [ ] **CSV Import/Export:** Standardized data handling for large campaign results.
