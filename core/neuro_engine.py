@@ -5,9 +5,11 @@ from tribev2 import TribeModel
 from nilearn import datasets
 import os
 import uuid
+import threading
 
 class NeuroEngine:
     def __init__(self, model_id="facebook/tribev2"):
+        self.lock = threading.Lock()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Initializing NeuroEngine on {self.device}...")
         self.model = TribeModel.from_pretrained(model_id)
@@ -38,6 +40,10 @@ class NeuroEngine:
     def analyze_media(self, file_path, media_type="video", audience_params=None):
         print(f"Analyzing {media_type}: {file_path} for audience: {audience_params}")
 
+        with self.lock:
+            return self._run_analysis(file_path, media_type, audience_params)
+
+    def _run_analysis(self, file_path, media_type, audience_params):
         if media_type == "video":
             df_events = self.model.get_events_dataframe(video_path=file_path)
         elif media_type == "audio":
@@ -49,7 +55,11 @@ class NeuroEngine:
             from bs4 import BeautifulSoup
             # Fix Race Condition: Unique temp file per request
             u_id = str(uuid.uuid4())
-            temp_path = f"uploads/{u_id}_url.txt"
+            import os
+            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+            os.makedirs(UPLOAD_DIR, exist_ok=True)
+            temp_path = os.path.join(UPLOAD_DIR, f"{u_id}_url.txt")
             try:
                 page = requests.get(file_path, timeout=10)
                 soup = BeautifulSoup(page.content, 'html.parser')
@@ -145,6 +155,35 @@ class NeuroEngine:
         pi = results["marketing_kpis"]["PurchaseIntent"]
         ssr = results["marketing_kpis"]["ScrollStopRate"]
         results["winning_probability"] = (sum(pi)/len(pi) * 0.7 + sum(ssr)/len(ssr) * 0.3)
+
+        # 10x Spatial Attention Heatmap (Vertex-level peak)
+        # We take the mean activation across the 'Attention' and 'VisualEngagement' ROIs
+        attention_indices = self.roi_map["Attention"] + self.roi_map["VisualEngagement"]
+        lh_mask = np.isin(self.left_atlas, attention_indices)
+        rh_mask = np.isin(self.right_atlas, attention_indices)
+        full_mask = np.concatenate([lh_mask, rh_mask])
+        if full_mask.shape[0] != preds.shape[1]: full_mask = full_mask[:preds.shape[1]]
+
+        # Get the vertex activations for these ROIs at the peak attention moment
+        peak_time_idx = np.argmax(results["marketing_kpis"]["ScrollStopRate"])
+        results["attention_heatmap"] = preds[peak_time_idx, full_mask].tolist()
+
+        # 10x Predictive Creative Fatigue
+        # Threshold: High attention and emotion density correlates with faster fatigue
+        avg_attention = np.mean(results["marketing_kpis"]["ScrollStopRate"])
+        avg_emotion = np.mean(neuro["Emotion"])
+        results["creative_fatigue"] = {
+            "fatigue_index": min(100, (avg_attention * 0.4 + avg_emotion * 0.6)), # 0-100 score
+            "estimated_days": max(3, 30 - int((avg_attention * 0.4 + avg_emotion * 0.6) / 4))
+        }
+
+        # 10x Contextual 'Vibe' Extraction
+        vibe_scores = {
+            "Excitement": (neuro["Emotion"][peak_time_idx] * 0.6 + neuro["Reward"][peak_time_idx] * 0.4),
+            "Trust": (neuro["Memory"][peak_time_idx] * 0.7 + (100 - neuro["CognitiveLoad"][peak_time_idx]) * 0.3),
+            "Urgency": (neuro["Attention"][peak_time_idx] * 0.5 + neuro["CognitiveLoad"][peak_time_idx] * 0.5)
+        }
+        results["vibe_analysis"] = sorted(vibe_scores.items(), key=lambda x: x[1], reverse=True)[0][0]
 
         # MOI Analysis
         moi_events = []

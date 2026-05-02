@@ -1,38 +1,51 @@
-# Production Architecture: NeuroMark SaaS
+# 🏗 10x Architecture: Agent-as-a-Service (AaaS)
 
-## Overview
-A production-ready SaaS for neuro-marketing insights leveraging the TRIBE v2 foundation model.
+NeuroMark Pro 10x is built on a modular, multi-layered architecture designed for high-throughput performance marketing analysis and assistive AI decision-making.
 
-## Component Stack
-- **AI Engine**: TRIBE v2 (facebookresearch) for tri-modal brain response prediction.
-- **Backend API**: FastAPI (high performance, asynchronous).
-- **Worker**: Background tasks for heavy inference.
-- **Database**: SQLite (for MVP/Production-ready local state) or PostgreSQL.
-- **Frontend**: Streamlit-based Marketing Dashboard.
-- **Processing**: Nilearn for brain atlas mapping and ROI extraction.
+---
 
-## Data Flow
-1. User uploads Media (Video/Audio/Text) via Dashboard.
-2. FastAPI receives the request, stores the file, and triggers an Inference Task.
-3. `NeuroEngine` runs TRIBE v2 on the media to get vertex-level brain activations.
-4. `AnalyticsService` maps vertices to Destrieux ROIs (Attention, Reward, Emotion, Memory).
-5. Results are aggregated into time-series data and stored.
-6. Dashboard fetches results and displays:
-   - Emotional Heatmap over time.
-   - Brand Desire Score (Reward ROI).
-   - Story Retention Probablity (Memory ROI).
-   - Comparison between multiple ad versions.
+## 1. System Layers
 
-## Neuro-Marketing ROI Mapping (Destrieux Atlas)
-- **Attention (Focus)**: `G_front_sup` (16), `S_front_sup` (55), `G_front_middle` (15), `S_front_middle` (54) - Multi-ROI prefrontal focus signals.
-- **Emotional Valence (Engagement)**: `G_insular_short` (18), `G_and_S_cingul-Ant` (6), `G_and_S_cingul-Mid-Ant` (7) - Core limbic response regions.
-- **Reward/Value (Desire)**: `G_orbital` (24), `S_orbital-H_Shaped` (65), `G_rectus` (31), `G_subcallosal` (32) - Orbitofrontal valuation complex.
-- **Memory Encoding (Impact)**: `G_oc-temp_med-Parahip` (23), `S_oc-temp_med_and_Lingual` (62) - Episodic memory retention.
-- **Cognitive Load (Friction)**: `S_front_middle` (54), `G_and_S_subcentral` (4).
-- **Visual Engagement**: `G_and_S_occipital_inf` (2), `G_cuneus` (11), `S_calcarine` (45).
+### 🧠 Core Engine (`/core`)
+- **`neuro_engine.py`**: The "Heart." Integrates `facebook/tribev2` to simulate brain responses across 20,484 vertices. It handles trilateral media processing (Video, Audio, Text/URL) and maps neural signals to the Destrieux Surface Atlas.
+- **`database.py`**: The "Memory." SQLAlchemy-based persistence layer for Campaigns, Analysis Tasks, and Marketing Results.
 
-## 10x Pro Features
-- **URL-to-Neuro**: Automated web scraping for news site analysis.
-- **Moment-of-Impact (MOI)**: Automated detection of emotional peaks and purchase intent spikes.
-- **Spatial Mapping**: Vertex-level spatial peak data extracted for 3D cortical visualization.
-- **Campaign Management**: Grouped asset analysis for enterprise marketing projects.
+### 🤖 Multi-Agent Layer (`/agents`)
+Our "Brain" is not a single LLM, but a collaborative ecosystem of specialized agents built on **Gemini 2.0 Flash**:
+- **Neuro-Analyst**: Specializes in scientific data interpretation and bottleneck detection.
+- **Creative Strategist**: Expert in D2C hooks, psychological triggers, and ad copy.
+- **Media Buyer**: Focused on auction dynamics, CPM estimation, and funnel logic.
+- **CRO Optimizer**: Conversion rate specialist for landing page and CTA refinement.
+
+### ⚙️ Orchestration Layer (`/services`)
+- **`brain_orchestrator.py`**: The "Conductor." Coordinates communication between agents and ensures that raw neuro-data is translated into actionable marketing strategy.
+
+### 🖥 Interface Layer (`/interface`)
+- **`dashboard.py`**: The "Cockpit." A unified Streamlit interface that provides 7+ modules for marketing execution, from Batch Ranking to "Competitor Spy" analysis.
+
+---
+
+## 2. The 10x Transformation Logic
+
+We apply a proprietary **Deterministic Calibration** layer between the raw scientific data and the user-facing KPIs:
+
+1. **Neural Inference**: TRIBE v2 predicts fMRI-level activation.
+2. **ROI Mapping**: Activation is mapped to 6 core Neuro-ROIs (Attention, Reward, etc.).
+3. **Marketing KPI Calculation**:
+   - *Scroll-Stop Rate* = Attention (70%) + Visual Engagement (30%)
+   - *Purchase Intent* = Reward (60%) + Emotion (40%) - Friction (20%)
+4. **Audience-Aware Weighting**: KPIs are adjusted based on:
+   - **Platform Context**: (e.g., TikTok requires higher hooks but offers higher virality).
+   - **Audience Age**: (e.g., Gen Z has higher cognitive friction for traditional "salesy" ads).
+   - **Industry Benchmarks**: Psychographic multipliers for SaaS, D2C, and Info-Products.
+
+---
+
+## 3. High-Throughput Design
+- **GPU Concurrency**: The `NeuroEngine` uses `threading.Lock` to ensure the foundation model handles batch requests without race conditions.
+- **Asynchronous Background Tasks**: FastAPI processes heavy neural simulations in the background, allowing the UI to remain responsive.
+
+---
+
+## 4. Feedback Loop: Machine Learning Calibration
+The system includes a manual feedback loop where marketers input real-world results (CTR, CPA). This data is stored alongside the predictions, allowing the `Neuro-Analyst` agent to calibrate future strategy based on actual "Prediction vs. Reality" variances.

@@ -5,15 +5,15 @@ import os
 import uuid
 import json
 from datetime import datetime
-from neuro_engine import NeuroEngine
-from ai_consultant import GeminiConsultant
-from database import SessionLocal, AnalysisTask, Campaign, MarketingResult
+from core.neuro_engine import NeuroEngine
+from services.brain_orchestrator import CampaignBrain
+from core.database import SessionLocal, AnalysisTask, Campaign, MarketingResult
 
 app = FastAPI(title="NeuroMark Pro 10x API")
 
 # Global instances
 engine = None
-consultant = GeminiConsultant() # API Key from env
+brain = CampaignBrain()
 
 UPLOAD_DIR = "uploads"
 RESULTS_DIR = "results"
@@ -46,12 +46,12 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
         eng = get_engine()
         results = eng.analyze_media(file_path, media_type=media_type, audience_params=audience_params)
 
-        # 10x Enhanced: Get Strategic AI Advice from Gemini
-        ai_advice = consultant.get_strategic_advice(results, audience_params)
+        # AaaS Transformation: Run Multi-Agent Campaign Brain
+        brain_report = brain.run_campaign_optimization(results, audience_params, media_type, file_path)
 
         # Update Database
         task.results = results
-        task.ai_advice = ai_advice
+        task.ai_advice = json.dumps(brain_report) # Store full agent report
         task.status = "completed"
         db.commit()
 
@@ -118,6 +118,59 @@ async def analyze_media(
     audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness}
     background_tasks.add_task(run_inference_task, task_id, file_path, media_type, audience_params)
     return AnalysisResponse(task_id=task_id, status="processing")
+
+@app.post("/analyze_batch")
+async def analyze_batch(
+    background_tasks: BackgroundTasks,
+    media_type: str,
+    files: list[UploadFile] = File(...),
+    campaign_name: str = "Batch Campaign",
+    age: str = "25-34",
+    platform: str = "Meta",
+    industry: str = "D2C",
+    awareness: str = "Cold"
+):
+    task_ids = []
+    db = SessionLocal()
+
+    campaign = db.query(Campaign).filter(Campaign.name == campaign_name).first()
+    if not campaign:
+        campaign = Campaign(name=campaign_name)
+        db.add(campaign)
+        db.commit()
+        db.refresh(campaign)
+
+    audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness}
+
+    for file in files:
+        task_id = str(uuid.uuid4())
+        file_path = os.path.join(UPLOAD_DIR, f"{task_id}_{file.filename}")
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        new_task = AnalysisTask(
+            id=task_id,
+            campaign_id=campaign.id,
+            media_type=media_type,
+            file_path=file_path,
+            audience_age=age,
+            audience_platform=platform,
+            audience_industry=industry,
+            audience_awareness=awareness
+        )
+        db.add(new_task)
+        task_ids.append(task_id)
+        background_tasks.add_task(run_inference_task, task_id, file_path, media_type, audience_params)
+
+    db.commit()
+    db.close()
+    return {"task_ids": task_ids, "status": "processing"}
+
+@app.post("/generate_hooks")
+async def generate_hooks(product_desc: str, age: str, platform: str, industry: str):
+    audience_params = {"age": age, "platform": platform, "industry": industry}
+    hooks = brain.strategist._generate(f"Generate 5 high-performance hooks for: {product_desc} targeting {json.dumps(audience_params)}")
+    return {"hooks": hooks}
 
 @app.get("/results/{task_id}")
 async def get_results(task_id: str):
@@ -187,7 +240,8 @@ async def chat_with_neuro(task_id: str, query: str):
     if not task or task.status != "completed":
         raise HTTPException(status_code=400, detail="Results not ready for chat")
 
-    response = consultant.chat_with_neuro_data(query, task.results)
+    prompt = f"Using this neurological data: {json.dumps(task.results)}, answer this user query: {query}"
+    response = brain.strategist._generate(prompt)
     return {"response": response}
 
 @app.get("/health")
