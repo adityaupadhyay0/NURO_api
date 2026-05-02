@@ -152,6 +152,18 @@ class NeuroEngine:
         ssr = results["marketing_kpis"]["ScrollStopRate"]
         results["winning_probability"] = (sum(pi)/len(pi) * 0.7 + sum(ssr)/len(ssr) * 0.3)
 
+        # 10x Spatial Attention Heatmap (Vertex-level peak)
+        # We take the mean activation across the 'Attention' and 'VisualEngagement' ROIs
+        attention_indices = self.roi_map["Attention"] + self.roi_map["VisualEngagement"]
+        lh_mask = np.isin(self.left_atlas, attention_indices)
+        rh_mask = np.isin(self.right_atlas, attention_indices)
+        full_mask = np.concatenate([lh_mask, rh_mask])
+        if full_mask.shape[0] != preds.shape[1]: full_mask = full_mask[:preds.shape[1]]
+
+        # Get the vertex activations for these ROIs at the peak attention moment
+        peak_time_idx = np.argmax(results["marketing_kpis"]["ScrollStopRate"])
+        results["attention_heatmap"] = preds[peak_time_idx, full_mask].tolist()
+
         # MOI Analysis
         moi_events = []
         emotion_vals = neuro["Emotion"]

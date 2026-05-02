@@ -115,12 +115,22 @@ with tab1:
                     c3.metric("Clarity Score", f"{df['Clarity'].mean():.1f}%")
                     c4.metric("Viral Potential", f"{df['ViralPotential'].mean():.1f}%")
 
+                    st.metric("Predicted Auction CPM", data.get("predicted_cpm", "$0.00"), help="Estimated cost per 1000 impressions based on segment competition.")
+
                     st.markdown("#### Predictive KPI Timeline")
                     st.line_chart(df.set_index("timestamp"))
 
                     with st.expander("🔍 MOMENT-OF-IMPACT (MOI) PEAKS"):
                         for peak in data.get("moi_analysis", []):
                             st.write(f"🔹 **{peak['type']}** at {peak['timestamp']:.1f}s (Value: {peak['value']:.1f}%)")
+
+                    if "attention_heatmap" in data:
+                        with st.expander("🔥 VISUAL ATTENTION HEATMAP"):
+                            heat_data = np.array(data["attention_heatmap"])
+                            fig_h, ax_h = plt.subplots(figsize=(10, 2))
+                            sns.heatmap([heat_data[:100]], cmap="YlOrRd", ax=ax_h, cbar=False, xticklabels=False, yticklabels=False)
+                            st.pyplot(fig_h)
+                            st.caption("Simplified cortical attention map at peak engagement moment.")
 
                     st.session_state.active_results = res
                 else:

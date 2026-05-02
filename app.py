@@ -46,8 +46,9 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
         eng = get_engine()
         results = eng.analyze_media(file_path, media_type=media_type, audience_params=audience_params)
 
-        # 10x Enhanced: Get Strategic AI Advice from Gemini
+        # 10x Enhanced: Get Strategic AI Advice and CPM from Gemini
         ai_advice = consultant.get_strategic_advice(results, audience_params)
+        results["predicted_cpm"] = consultant.estimate_cpm(audience_params)
 
         # Update Database
         task.results = results

@@ -36,7 +36,8 @@ class GeminiConsultant:
 
         Task:
         1. Winning Probability Assessment: Explain why this ad has this specific winning probability for THIS audience.
-        2. Neuro-Gap Analysis: Identify which marketing KPI is the bottleneck (e.g., is it failing to stop the scroll or failing to build purchase intent?).
+        2. Predictive CPM Estimation: Based on the platform ({audience_params.get('platform')}) and industry ({audience_params.get('industry')}), estimate the predicted CPM range and auction competitiveness.
+        3. Neuro-Gap Analysis: Identify which marketing KPI is the bottleneck (e.g., is it failing to stop the scroll or failing to build purchase intent?).
         3. The '10x Winner' Creative Brief:
            - New Hook: Provide 2 alternative high-attention hooks.
            - Visual Script: Describe a 5-second 'Scroll-Stop' sequence.
@@ -65,6 +66,25 @@ class GeminiConsultant:
             return response.text
         except Exception as e:
             return f"Chat Error: {str(e)}"
+
+    def estimate_cpm(self, audience_params):
+        if not self.model:
+            return "$0.00"
+
+        prompt = f"""
+        As a Performance Marketing Analyst, estimate the average CPM (Cost Per Mille) range for this segment:
+        Platform: {audience_params.get('platform')}
+        Industry: {audience_params.get('industry')}
+        Audience Age: {audience_params.get('age')}
+        Awareness: {audience_params.get('awareness')}
+
+        Provide only a single dollar range (e.g. '$15.00 - $25.00') based on current 2026 market trends.
+        """
+        try:
+            response = self.model.generate_content(prompt)
+            return response.text.strip()
+        except:
+            return "Estimation Unavailable"
 
     def generate_high_performance_hooks(self, product_desc, audience_params):
         if not self.model:
