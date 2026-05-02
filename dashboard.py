@@ -39,7 +39,7 @@ with st.sidebar:
 
 # Application Navigation
 st.title("🧠 Performance Marketing Neuro-Predictor")
-tab1, tab_batch, tab_hooks, tab2, tab3, tab4 = st.tabs(["🚀 Predict & Optimize", "📊 Batch Ranking", "✍️ Hook Generator", "⚔️ Creative Battle Royale", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
+tab1, tab_batch, tab_hooks, tab_spy, tab2, tab3, tab4 = st.tabs(["🚀 Predict & Optimize", "📊 Batch Ranking", "✍️ Hook Generator", "🕵️ Competitor Spy", "⚔️ Creative Battle Royale", "📊 Creative Strategy", "📉 Prediction vs. Reality"])
 
 with tab1:
     col1, col2 = st.columns([1, 2])
@@ -117,6 +117,11 @@ with tab1:
 
                     st.metric("Predicted Auction CPM", data.get("predicted_cpm", "$0.00"), help="Estimated cost per 1000 impressions based on segment competition.")
 
+                    if "creative_fatigue" in data:
+                        k1, k2 = st.columns(2)
+                        k1.metric("Fatigue Index", f"{data['creative_fatigue']['fatigue_index']:.1f}/100")
+                        k2.metric("Est. Ad Life", f"{data['creative_fatigue']['estimated_days']} Days")
+
                     st.markdown("#### Predictive KPI Timeline")
                     st.line_chart(df.set_index("timestamp"))
 
@@ -139,6 +144,38 @@ with tab1:
                 st.info("Loading results...")
         else:
             st.info("Upload content to unlock neurological insights.")
+
+with tab_spy:
+    st.header("🕵️ Competitor Neuro-Spy")
+    st.markdown("Analyze competitor URLs to extract their 'Secret Sauce' and emotional hooks.")
+
+    comp_url = st.text_input("Competitor Landing Page or Ad URL", "https://example-competitor.com")
+
+    if st.button("🔍 Run Spy Analysis", type="primary"):
+        with st.spinner("Decoding Competitor Strategy..."):
+            try:
+                # Use standard analyze endpoint but for URL
+                params = {"media_type": "url", "text_content": comp_url, "campaign_name": "Spy Ops", "age": age, "platform": platform}
+                resp = requests.post(f"{API_URL}/analyze", params=params).json()
+                st.session_state.spy_task_id = resp["task_id"]
+                st.success(f"Spy Task Initialized: {resp['task_id']}")
+            except:
+                st.error("Spy analysis failed.")
+
+    if "spy_task_id" in st.session_state:
+        try:
+            spy_res = requests.get(f"{API_URL}/results/{st.session_state.spy_task_id}").json()
+            if spy_res["status"] == "completed":
+                st.subheader("🕵️ Spy Intelligence Report")
+                col_s1, col_s2 = st.columns(2)
+                col_s1.metric("Competitor Hook Strength", f"{spy_res['data']['marketing_kpis']['ScrollStopRate'][0]:.1f}%")
+                col_s2.metric("Predicted Conversion Intent", f"{spy_res['data']['marketing_kpis']['PurchaseIntent'][0]:.1f}%")
+
+                st.markdown(f'<div class="ai-card"><b>Secret Sauce (AI Analysis):</b><br>{spy_res["ai_advice"]}</div>', unsafe_allow_html=True)
+            else:
+                st.info("Spying in progress...")
+        except:
+            pass
 
 with tab_hooks:
     st.header("✍️ AI Scroll-Stop Hook Generator")
@@ -212,6 +249,10 @@ with tab_batch:
         if leaderboard_data:
             ldf = pd.DataFrame(leaderboard_data).sort_values("Win Prob %", ascending=False)
             st.table(ldf)
+
+            # 10x CSV Export
+            csv = ldf.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Export Leaderboard (CSV)", data=csv, file_name="batch_ranking.csv", mime="text/csv")
 
             winner = ldf.iloc[0]
             st.balloons()

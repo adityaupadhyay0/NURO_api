@@ -164,6 +164,15 @@ class NeuroEngine:
         peak_time_idx = np.argmax(results["marketing_kpis"]["ScrollStopRate"])
         results["attention_heatmap"] = preds[peak_time_idx, full_mask].tolist()
 
+        # 10x Predictive Creative Fatigue
+        # Threshold: High attention and emotion density correlates with faster fatigue
+        avg_attention = np.mean(results["marketing_kpis"]["ScrollStopRate"])
+        avg_emotion = np.mean(neuro["Emotion"])
+        results["creative_fatigue"] = {
+            "fatigue_index": min(100, (avg_attention * 0.4 + avg_emotion * 0.6)), # 0-100 score
+            "estimated_days": max(3, 30 - int((avg_attention * 0.4 + avg_emotion * 0.6) / 4))
+        }
+
         # MOI Analysis
         moi_events = []
         emotion_vals = neuro["Emotion"]
