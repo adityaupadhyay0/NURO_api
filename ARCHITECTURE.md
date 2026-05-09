@@ -25,12 +25,23 @@ Our "Brain" is not a single LLM, but a collaborative ecosystem of specialized ag
 
 ---
 
-## 2. The 10x Transformation Logic
+## 2. Intelligence System Files
+We maintain persistent operational intelligence through dedicated system files:
+- **`road.md`**: Global roadmap, state tracking, and task prioritization.
+- **`research-journal.md`**: Log of scientific hypotheses, findings, and neuro-marketing experiments.
+- **`performance-log.md`**: Tracking latency, GPU utilization, and system efficiency.
+- **`security-audit.md`**: Continuous security monitoring and vulnerability tracking.
+- **`neuro-validation.md`**: Verification of neural-to-marketing mappings and model calibration.
+- **`agent-workflows.md`**: Documentation of multi-agent collaboration patterns and tool use.
+
+---
+
+## 3. The 10x Transformation Logic
 
 We apply a proprietary **Deterministic Calibration** layer between the raw scientific data and the user-facing KPIs:
 
 1. **Neural Inference**: TRIBE v2 predicts fMRI-level activation.
-2. **ROI Mapping**: Activation is mapped to 6 core Neuro-ROIs (Attention, Reward, etc.).
+2. **ROI Mapping**: Activation is mapped to 6 core Neuro-ROIs (Attention, Emotion, Reward, etc.).
 3. **Marketing KPI Calculation**:
    - *Scroll-Stop Rate* = Attention (70%) + Visual Engagement (30%)
    - *Purchase Intent* = Reward (60%) + Emotion (40%) - Friction (20%)
@@ -41,11 +52,11 @@ We apply a proprietary **Deterministic Calibration** layer between the raw scien
 
 ---
 
-## 3. High-Throughput Design
+## 4. High-Throughput Design
 - **GPU Concurrency**: The `NeuroEngine` uses `threading.Lock` to ensure the foundation model handles batch requests without race conditions.
 - **Asynchronous Background Tasks**: FastAPI processes heavy neural simulations in the background, allowing the UI to remain responsive.
 
 ---
 
-## 4. Feedback Loop: Machine Learning Calibration
+## 5. Feedback Loop: Machine Learning Calibration
 The system includes a manual feedback loop where marketers input real-world results (CTR, CPA). This data is stored alongside the predictions, allowing the `Neuro-Analyst` agent to calibrate future strategy based on actual "Prediction vs. Reality" variances.
