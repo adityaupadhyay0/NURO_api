@@ -4,10 +4,15 @@ import shutil
 import os
 import uuid
 import json
+import logging
 from datetime import datetime
 from core.neuro_engine import NeuroEngine
 from services.brain_orchestrator import CampaignBrain
 from core.database import SessionLocal, AnalysisTask, Campaign, MarketingResult
+
+# Configure Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="NeuroMark Pro 10x API")
 
@@ -15,8 +20,9 @@ app = FastAPI(title="NeuroMark Pro 10x API")
 engine = None
 brain = CampaignBrain()
 
-UPLOAD_DIR = "uploads"
-RESULTS_DIR = "results"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
@@ -43,6 +49,7 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
     task = db.query(AnalysisTask).filter(AnalysisTask.id == task_id).first()
 
     try:
+        logger.info(f"Starting inference task: {task_id} for {media_type}")
         eng = get_engine()
         results = eng.analyze_media(file_path, media_type=media_type, audience_params=audience_params)
 
@@ -54,9 +61,10 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
         task.ai_advice = json.dumps(brain_report) # Store full agent report
         task.status = "completed"
         db.commit()
+        logger.info(f"Task {task_id} completed successfully")
 
     except Exception as e:
-        print(f"Error in task {task_id}: {e}")
+        logger.error(f"Error in task {task_id}: {str(e)}", exc_info=True)
         task.status = "failed"
         db.commit()
     finally:

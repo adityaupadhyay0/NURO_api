@@ -41,8 +41,13 @@ class MarketingResult(Base):
 
 # Database Setup
 import os
+import logging
+
+logger = logging.getLogger(__name__)
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = f"sqlite:///{os.path.join(BASE_DIR, 'neuromark_pro.db')}"
+logger.info(f"Connecting to database at {DB_PATH}")
 engine = create_engine(DB_PATH)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

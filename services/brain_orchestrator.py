@@ -11,28 +11,78 @@ class CampaignBrain:
         self.cro = CROOptimizer()
 
     async def process_goal(self, goal, campaign_id=None):
-        """Conversational entry point for the AaaS brain."""
-        # 1. Decompose goal and determine involved agents
-        involved_agents = ["Creative Strategist", "Media Buyer"]
-        if "competitor" in goal.lower() or "spy" in goal.lower():
-            involved_agents.append("Neuro-Analyst")
+        """Conversational entry point for the AaaS brain with dynamic agent selection."""
+        # 1. Dynamic Agent Selection based on keywords and context
+        involved_agents = []
 
-        # 2. Coordinate multi-agent response
-        context = f"Goal: {goal}"
-        strategy_text = self.strategist.develop_strategy({"goal": goal}, {"platform": "Omnichannel"})
-        funnel_text = self.buyer.optimize_funnel(strategy_text, "Variable")
+        # Mapping keywords to agents
+        agent_map = {
+            "strategy": self.strategist,
+            "hook": self.strategist,
+            "script": self.strategist,
+            "ad": self.strategist,
+            "funnel": self.buyer,
+            "cpm": self.buyer,
+            "auction": self.buyer,
+            "competitor": self.analyst,
+            "spy": self.analyst,
+            "neuro": self.analyst,
+            "bottleneck": self.analyst,
+            "landing": self.cro,
+            "page": self.cro,
+            "conversion": self.cro,
+            "cro": self.cro
+        }
 
-        response = (
-            f"I've coordinated with the **{' and '.join(involved_agents)}**. "
-            f"For your goal: '{goal}', I recommend focusing on the following creative strategy:\n\n"
-            f"{strategy_text[:500]}...\n\n"
-            f"Our Media Buyer suggests:\n{funnel_text[:300]}..."
-        )
+        selected_agents = []
+        for keyword, agent in agent_map.items():
+            if keyword in goal.lower():
+                if agent.role not in involved_agents:
+                    involved_agents.append(agent.role)
+                    selected_agents.append(agent)
+
+        # Default fallback if no keywords match
+        if not selected_agents:
+            involved_agents = [self.strategist.role, self.buyer.role]
+            selected_agents = [self.strategist, self.buyer]
+
+        # 2. Sequential Reasoning and Collaboration
+        context = f"User Goal: {goal}"
+        agent_outputs = {}
+
+        # Collaborative Flow
+        # Analyst first if present
+        if self.analyst in selected_agents:
+            agent_outputs["neuro"] = self.analyst.analyze({"goal": goal})
+            context += f"\nNeuro Analysis: {agent_outputs['neuro']}"
+
+        # Strategist next
+        if self.strategist in selected_agents:
+            strategy_input = agent_outputs.get("neuro", {"goal": goal})
+            agent_outputs["strategy"] = self.strategist.develop_strategy(strategy_input, {"platform": "Omnichannel"})
+            context += f"\nCreative Strategy: {agent_outputs['strategy']}"
+
+        # Media Buyer and CRO last
+        if self.buyer in selected_agents:
+            agent_outputs["media"] = self.buyer.optimize_funnel(agent_outputs.get("strategy", goal), "Market Average")
+
+        if self.cro in selected_agents:
+            agent_outputs["cro"] = self.cro.optimize_cro("Current Landing Page", agent_outputs.get("neuro", "General Friction"))
+
+        # 3. Construct Unified Response
+        response_parts = [f"I've coordinated with the **{', '.join(involved_agents)}**."]
+
+        if "strategy" in agent_outputs:
+            response_parts.append(f"### 🎨 Creative Strategy\n{agent_outputs['strategy']}")
+        if "media" in agent_outputs:
+            response_parts.append(f"### 💰 Media Buying Plan\n{agent_outputs['media']}")
+        if "cro" in agent_outputs:
+            response_parts.append(f"### 🚀 CRO Report\n{agent_outputs['cro']}")
 
         return {
-            "response": response,
-            "strategy": strategy_text,
-            "involved_agents": involved_agents
+            "response": "\n\n".join(response_parts),
+            "involved_agents": involved_agents,
+            "agent_outputs": agent_outputs
         }
 
     def run_campaign_optimization(self, neuro_results, audience_params, media_type="video", file_path=None):
