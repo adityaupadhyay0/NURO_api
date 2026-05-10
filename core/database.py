@@ -40,13 +40,11 @@ class MarketingResult(Base):
     created_at = Column(DateTime, default=datetime.now)
 
 # Database Setup
-import os
 import logging
+from core.config import DB_PATH
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = f"sqlite:///{os.path.join(BASE_DIR, 'neuromark_pro.db')}"
 logger.info(f"Connecting to database at {DB_PATH}")
 engine = create_engine(DB_PATH)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
