@@ -16,15 +16,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="NeuroMark Pro 10x API")
 
+from core.config import UPLOAD_DIR, RESULTS_DIR
+
 # Global instances
 engine = None
 brain = CampaignBrain()
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-RESULTS_DIR = os.path.join(BASE_DIR, "results")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(RESULTS_DIR, exist_ok=True)
 
 class AnalysisResponse(BaseModel):
     task_id: str
@@ -45,28 +41,42 @@ def get_engine():
     return engine
 
 def run_inference_task(task_id: str, file_path: str, media_type: str, audience_params: dict):
+    """Executes the heavy neural simulation and agent orchestration in the background."""
     db = SessionLocal()
     task = db.query(AnalysisTask).filter(AnalysisTask.id == task_id).first()
+
+    if not task:
+        logger.error(f"Task {task_id} not found in database.")
+        db.close()
+        return
 
     try:
         logger.info(f"Starting inference task: {task_id} for {media_type}")
         eng = get_engine()
+
+        # 1. Neural Inference
         results = eng.analyze_media(file_path, media_type=media_type, audience_params=audience_params)
 
-        # AaaS Transformation: Run Multi-Agent Campaign Brain
+        # 2. Multi-Agent Orchestration (AaaS)
+        logger.info(f"Running Multi-Agent orchestration for task: {task_id}")
         brain_report = brain.run_campaign_optimization(results, audience_params, media_type, file_path)
 
-        # Update Database
+        # 3. Persistence
         task.results = results
-        task.ai_advice = json.dumps(brain_report) # Store full agent report
+        task.ai_advice = json.dumps(brain_report)
         task.status = "completed"
         db.commit()
-        logger.info(f"Task {task_id} completed successfully")
+        logger.info(f"Task {task_id} completed successfully.")
 
     except Exception as e:
-        logger.error(f"Error in task {task_id}: {str(e)}", exc_info=True)
-        task.status = "failed"
-        db.commit()
+        logger.error(f"Critical failure in background task {task_id}: {str(e)}", exc_info=True)
+        try:
+            task.status = "failed"
+            # Optional: Store error details for debugging
+            task.ai_advice = json.dumps({"error": str(e), "timestamp": str(datetime.now())})
+            db.commit()
+        except Exception as db_err:
+            logger.error(f"Failed to update task status to 'failed': {str(db_err)}")
     finally:
         db.close()
 

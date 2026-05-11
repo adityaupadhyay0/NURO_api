@@ -6,9 +6,10 @@ from nilearn import datasets
 import os
 import uuid
 import threading
+from core.config import UPLOAD_DIR, TRIBE_MODEL_ID
 
 class NeuroEngine:
-    def __init__(self, model_id="facebook/tribev2"):
+    def __init__(self, model_id=TRIBE_MODEL_ID):
         self.lock = threading.Lock()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Initializing NeuroEngine on {self.device}...")
@@ -55,10 +56,6 @@ class NeuroEngine:
             from bs4 import BeautifulSoup
             # Fix Race Condition: Unique temp file per request
             u_id = str(uuid.uuid4())
-            import os
-            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-            os.makedirs(UPLOAD_DIR, exist_ok=True)
             temp_path = os.path.join(UPLOAD_DIR, f"{u_id}_url.txt")
             try:
                 page = requests.get(file_path, timeout=10)
@@ -105,7 +102,11 @@ class NeuroEngine:
             if full_mask.shape[0] != preds.shape[1]:
                 full_mask = full_mask[:preds.shape[1]]
 
-            metric_series = preds[:, full_mask].mean(axis=1)
+            if np.any(full_mask):
+                metric_series = preds[:, full_mask].mean(axis=1)
+            else:
+                metric_series = np.zeros(preds.shape[0])
+
             results["neuro_metrics"][metric_name] = self._normalize(metric_series).tolist()
 
         # 2. Map Neuro Metrics to Marketing KPIs
@@ -170,11 +171,17 @@ class NeuroEngine:
 
         # 10x Predictive Creative Fatigue
         # Threshold: High attention and emotion density correlates with faster fatigue
-        avg_attention = np.mean(results["marketing_kpis"]["ScrollStopRate"])
-        avg_emotion = np.mean(neuro["Emotion"])
+        avg_attention = np.nanmean(results["marketing_kpis"]["ScrollStopRate"])
+        avg_emotion = np.nanmean(neuro["Emotion"])
+
+        # Handle potential NaNs from nanmean
+        if np.isnan(avg_attention): avg_attention = 0.0
+        if np.isnan(avg_emotion): avg_emotion = 0.0
+
+        fatigue_score = (avg_attention * 0.4 + avg_emotion * 0.6)
         results["creative_fatigue"] = {
-            "fatigue_index": min(100, (avg_attention * 0.4 + avg_emotion * 0.6)), # 0-100 score
-            "estimated_days": max(3, 30 - int((avg_attention * 0.4 + avg_emotion * 0.6) / 4))
+            "fatigue_index": min(100, fatigue_score), # 0-100 score
+            "estimated_days": max(3, 30 - int(fatigue_score / 4))
         }
 
         # 10x Contextual 'Vibe' Extraction

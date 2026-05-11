@@ -1,10 +1,11 @@
 import google.generativeai as genai
 import os
 import json
+from core.config import GEMINI_API_KEY
 
 class BaseAgent:
     def __init__(self, role, goal, backstory):
-        self.api_key = os.environ.get("GEMINI_API_KEY")
+        self.api_key = GEMINI_API_KEY
         if self.api_key:
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel('gemini-2.0-flash')

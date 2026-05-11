@@ -67,3 +67,32 @@ def test_get_campaigns():
     response = client.get("/campaigns")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+@patch("app.NeuroEngine")
+def test_analyze_batch_mocked(mock_engine):
+    mock_engine_instance = mock_engine.return_value
+    # Minimal mock return
+    mock_engine_instance.analyze_media.return_value = {
+        "timestamps": [0],
+        "neuro_metrics": {"Attention": [50]},
+        "marketing_kpis": {"ScrollStopRate": [50]},
+        "winning_probability": 50
+    }
+
+    # Prepare mock files
+    files = [
+        ("files", ("video1.mp4", b"content1", "video/mp4")),
+        ("files", ("video2.mp4", b"content2", "video/mp4"))
+    ]
+
+    with patch("app.engine", mock_engine_instance):
+        response = client.post(
+            "/analyze_batch",
+            params={"media_type": "video", "campaign_name": "Batch Test"},
+            files=files
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "task_ids" in data
+    assert len(data["task_ids"]) == 2
