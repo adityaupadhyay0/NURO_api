@@ -16,9 +16,10 @@ class BaseAgent:
         self.goal = goal
         self.backstory = backstory
 
-    def _generate(self, prompt):
+    def _generate(self, prompt, context=None):
         if not self.model: return "Gemini API key not configured."
-        full_prompt = f"Role: {self.role}\nGoal: {self.goal}\nBackstory: {self.backstory}\n\nTask: {prompt}"
+        context_str = f"\n\nCollaboration Context:\n{context}" if context else ""
+        full_prompt = f"Role: {self.role}\nGoal: {self.goal}\nBackstory: {self.backstory}{context_str}\n\nTask: {prompt}"
         try:
             return self.model.generate_content(full_prompt).text
         except Exception as e:
@@ -32,9 +33,9 @@ class NeuroAnalyst(BaseAgent):
             backstory="You are an expert in cognitive neuroscience with a focus on consumer behavior."
         )
 
-    def analyze(self, neuro_results):
+    def analyze(self, neuro_results, context=None):
         prompt = f"Analyze these neural metrics and identify the top 3 engagement bottlenecks: {json.dumps(neuro_results, indent=2)}"
-        return self._generate(prompt)
+        return self._generate(prompt, context=context)
 
 class CreativeStrategist(BaseAgent):
     def __init__(self):
@@ -44,9 +45,9 @@ class CreativeStrategist(BaseAgent):
             backstory="You have scaled dozens of D2C brands to 8-figures using data-driven creative."
         )
 
-    def develop_strategy(self, analysis, audience_params):
+    def develop_strategy(self, analysis, audience_params, context=None):
         prompt = f"Based on this neuro-analysis: {analysis}, develop a creative strategy for this audience: {json.dumps(audience_params)}"
-        return self._generate(prompt)
+        return self._generate(prompt, context=context)
 
 class MediaBuyer(BaseAgent):
     def __init__(self):
@@ -56,9 +57,9 @@ class MediaBuyer(BaseAgent):
             backstory="You understand the Meta and TikTok auction algorithms better than anyone."
         )
 
-    def optimize_funnel(self, strategy, cpm_data):
+    def optimize_funnel(self, strategy, cpm_data, context=None):
         prompt = f"Optimize the media buying funnel for this strategy: {strategy}. Consider this CPM context: {cpm_data}"
-        return self._generate(prompt)
+        return self._generate(prompt, context=context)
 
 class CROOptimizer(BaseAgent):
     def __init__(self):
@@ -68,6 +69,6 @@ class CROOptimizer(BaseAgent):
             backstory="You have optimized thousands of checkout flows for maximum efficiency."
         )
 
-    def optimize_cro(self, landing_page_data, neuro_gaps):
+    def optimize_cro(self, landing_page_data, neuro_gaps, context=None):
         prompt = f"Optimize this landing page: {landing_page_data} by addressing these neuro-gaps: {neuro_gaps}"
-        return self._generate(prompt)
+        return self._generate(prompt, context=context)
