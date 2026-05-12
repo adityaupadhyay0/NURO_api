@@ -6,6 +6,10 @@
 - **API Security:** Basic FastAPI implementation. Needs rate limiting and authentication for production deployment.
 
 ## Action Items
-- [ ] Implement robust prompt sanitization.
-- [ ] Harden file upload handling to prevent path traversal.
+- [x] Implement robust prompt sanitization. (Completed 2026-05)
+- [x] Harden file upload handling to prevent path traversal. (Completed 2026-05)
 - [ ] Add API authentication layer.
+
+## Security Log (May 2026)
+- **Prompt Sanitization:** Added `_sanitize` method to `BaseAgent` in `agents/specialized_agents.py` to strip/redact common injection patterns like "ignore previous instructions".
+- **Secure File Uploads:** Integrated `werkzeug.utils.secure_filename` in `app.py` to prevent directory traversal attacks during file ingestion.

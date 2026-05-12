@@ -4,6 +4,7 @@ import shutil
 import os
 import uuid
 import json
+from werkzeug.utils import secure_filename
 import logging
 from datetime import datetime
 from core.neuro_engine import NeuroEngine
@@ -111,7 +112,8 @@ async def analyze_media(
     elif media_type == "url" and text_content:
         file_path = text_content
     elif file:
-        file_path = os.path.join(UPLOAD_DIR, f"{task_id}_{file.filename}")
+        s_filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_DIR, f"{task_id}_{s_filename}")
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     else:
@@ -162,7 +164,8 @@ async def analyze_batch(
 
     for file in files:
         task_id = str(uuid.uuid4())
-        file_path = os.path.join(UPLOAD_DIR, f"{task_id}_{file.filename}")
+        s_filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_DIR, f"{task_id}_{s_filename}")
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
