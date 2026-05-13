@@ -4,6 +4,14 @@ from datetime import datetime
 
 Base = declarative_base()
 
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String, default="Marketer") # Admin, Marketer, Viewer
+    created_at = Column(DateTime, default=datetime.now)
+
 class Campaign(Base):
     __tablename__ = 'campaigns'
     id = Column(Integer, primary_key=True, autoincrement=True)

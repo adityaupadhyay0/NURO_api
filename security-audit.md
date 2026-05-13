@@ -8,8 +8,10 @@
 ## Action Items
 - [x] Implement robust prompt sanitization. (Completed 2026-05)
 - [x] Harden file upload handling to prevent path traversal. (Completed 2026-05)
-- [ ] Add API authentication layer.
+- [x] Add API authentication layer. (Completed 2026-05)
 
 ## Security Log (May 2026)
+- **API Authentication & RBAC:** Implemented JWT-based OAuth2 authentication and Role-Based Access Control (Admin, Marketer, Viewer) to secure all API endpoints. Hardened registration to prevent unauthorized privilege escalation and enforced mandatory `JWT_SECRET_KEY` configuration.
+- **Resource Management:** Refactored database session handling to use FastAPI dependencies, mitigating potential connection leaks.
 - **Prompt Sanitization:** Added `_sanitize` method to `BaseAgent` in `agents/specialized_agents.py` to strip/redact common injection patterns like "ignore previous instructions".
 - **Secure File Uploads:** Integrated `werkzeug.utils.secure_filename` in `app.py` to prevent directory traversal attacks during file ingestion.
