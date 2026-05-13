@@ -1,6 +1,7 @@
 import google.generativeai as genai
 import os
 import json
+import re
 from core.config import GEMINI_API_KEY
 
 class BaseAgent:
@@ -16,10 +17,27 @@ class BaseAgent:
         self.goal = goal
         self.backstory = backstory
 
+    def _sanitize(self, text):
+        """Basic prompt sanitization to prevent common injection patterns (case-insensitive)."""
+        if not text or not isinstance(text, str):
+            return text
+        # Remove potential instruction overrides and suspicious patterns
+        forbidden_phrases = ["ignore previous instructions", "system prompt", "as a service", "disregard"]
+        sanitized = text
+        for phrase in forbidden_phrases:
+            # Case-insensitive replacement using regex
+            sanitized = re.sub(re.escape(phrase), "[REDACTED]", sanitized, flags=re.IGNORECASE)
+        return sanitized
+
     def _generate(self, prompt, context=None):
         if not self.model: return "Gemini API key not configured."
-        context_str = f"\n\nCollaboration Context:\n{context}" if context else ""
-        full_prompt = f"Role: {self.role}\nGoal: {self.goal}\nBackstory: {self.backstory}{context_str}\n\nTask: {prompt}"
+
+        # Sanitize inputs
+        s_prompt = self._sanitize(prompt)
+        s_context = self._sanitize(context)
+
+        context_str = f"\n\nCollaboration Context:\n{s_context}" if s_context else ""
+        full_prompt = f"Role: {self.role}\nGoal: {self.goal}\nBackstory: {self.backstory}{context_str}\n\nTask: {s_prompt}"
         try:
             return self.model.generate_content(full_prompt).text
         except Exception as e:

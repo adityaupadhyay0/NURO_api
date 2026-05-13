@@ -6,7 +6,11 @@ from nilearn import datasets
 import os
 import uuid
 import threading
+import time
+import logging
 from core.config import UPLOAD_DIR, TRIBE_MODEL_ID
+
+logger = logging.getLogger(__name__)
 
 class NeuroEngine:
     def __init__(self, model_id=TRIBE_MODEL_ID):
@@ -39,10 +43,24 @@ class NeuroEngine:
         }
 
     def analyze_media(self, file_path, media_type="video", audience_params=None):
-        print(f"Analyzing {media_type}: {file_path} for audience: {audience_params}")
+        logger.info(f"Analyzing {media_type}: {file_path} for audience: {audience_params}")
 
+        start_lock = time.time()
         with self.lock:
-            return self._run_analysis(file_path, media_type, audience_params)
+            lock_wait = time.time() - start_lock
+            logger.info(f"Acquired GPU lock in {lock_wait:.2f}s")
+
+            start_inference = time.time()
+            results = self._run_analysis(file_path, media_type, audience_params)
+            inference_time = time.time() - start_inference
+
+            logger.info(f"Inference completed in {inference_time:.2f}s")
+            if isinstance(results, dict):
+                results["performance_metrics"] = {
+                    "lock_wait_time": lock_wait,
+                    "inference_time": inference_time
+                }
+            return results
 
     def _run_analysis(self, file_path, media_type, audience_params):
         if media_type == "video":
