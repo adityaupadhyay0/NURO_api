@@ -33,8 +33,8 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 - Real-time telemetry now tracking core engine latency.
 
 # Security State
-- Hardened: Implemented prompt injection mitigation and secure file upload handling.
-- Next: API rate limiting and authentication.
+- Hardened: Implemented prompt injection mitigation, secure file upload handling, and API rate limiting.
+- Completed: API authentication and RBAC.
 
 # UX State
 - Streamlit dashboard providing 7+ modules for marketing execution.
@@ -54,15 +54,13 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 - Automated tests (pytest) are active and passing (10/10).
 
 # Technical Debt
-- API authentication layer missing.
-- Need for rate limiting.
+- Need for more granular telemetry in agent orchestration.
 
 # Active Task
-- API Authentication & RBAC Implementation (JWT-based).
+- Optimizing NeuroEngine inference latency and caching.
 
 # Queued Tasks
-1. Rate limiting implementation.
-3. Optimizing inference latency.
+1. Optimizing inference latency.
 4. Synthetic audience simulation expansion.
 5. Neuro-native generation integration.
 6. Global performance benchmarks implementation.
@@ -73,6 +71,7 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 - Destrieux Surface Atlas for ROI mapping.
 
 # Recently Completed Tasks
+- API Rate Limiting: Implemented using `slowapi` to protect sensitive endpoints from abuse and resource exhaustion.
 - API Authentication & RBAC: Implemented JWT-based auth and role-based permissions (Admin, Marketer, Viewer).
 - Security Hardening: Implemented prompt sanitization and secure file handling.
 - Observability: Added performance telemetry to the NeuroEngine.
@@ -94,6 +93,8 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 # Execution Log
 ## [2026-05-20]
 ### Completed
+- Implemented API Rate Limiting for all sensitive endpoints using `slowapi`.
+- Stabilized environment and test suite (fixed duplicate registrations and datetime deprecations).
 - Environment stabilization (pip install dependencies).
 - Verified current state with 10 passed tests.
 - Implemented `BaseAgent._sanitize` for case-insensitive prompt injection mitigation.
