@@ -58,11 +58,10 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 - Need for rate limiting.
 
 # Active Task
-- Hardened security and improved infrastructure observability.
+- API Authentication & RBAC Implementation (JWT-based).
 
 # Queued Tasks
-1. API Authentication & RBAC.
-2. Rate limiting implementation.
+1. Rate limiting implementation.
 3. Optimizing inference latency.
 4. Synthetic audience simulation expansion.
 5. Neuro-native generation integration.
@@ -74,6 +73,7 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 - Destrieux Surface Atlas for ROI mapping.
 
 # Recently Completed Tasks
+- API Authentication & RBAC: Implemented JWT-based auth and role-based permissions (Admin, Marketer, Viewer).
 - Security Hardening: Implemented prompt sanitization and secure file handling.
 - Observability: Added performance telemetry to the NeuroEngine.
 - Environment: Stabilized test dependencies and verification suite.

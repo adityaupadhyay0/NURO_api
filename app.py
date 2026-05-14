@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends, status
 from pydantic import BaseModel
 import shutil
 import os
@@ -6,10 +6,23 @@ import uuid
 import json
 from werkzeug.utils import secure_filename
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from core.neuro_engine import NeuroEngine
 from services.brain_orchestrator import CampaignBrain
-from core.database import SessionLocal, AnalysisTask, Campaign, MarketingResult
+from core.database import SessionLocal, AnalysisTask, Campaign, MarketingResult, User
+from core.auth import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    get_db,
+    require_admin,
+    require_marketer,
+    require_viewer,
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+from typing import List
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -34,6 +47,14 @@ class MarketingResultIn(BaseModel):
     cpa: float = None
     conversion_rate: float = None
     notes: str = None
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 def get_engine():
     global engine
@@ -81,6 +102,35 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
     finally:
         db.close()
 
+@app.post("/auth/register")
+async def register(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    hashed_pwd = get_password_hash(user.password)
+    # Security: Defaulting to Marketer role to prevent privilege escalation
+    new_user = User(username=user.username, hashed_password=hashed_pwd, role="Marketer")
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"message": "User created successfully", "username": new_user.username}
+
+@app.post("/auth/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_media(
     background_tasks: BackgroundTasks,
@@ -91,10 +141,11 @@ async def analyze_media(
     age: str = "25-34",
     platform: str = "Meta",
     industry: str = "D2C",
-    awareness: str = "Cold"
+    awareness: str = "Cold",
+    current_user: User = Depends(require_marketer),
+    db: Session = Depends(get_db)
 ):
     task_id = str(uuid.uuid4())
-    db = SessionLocal()
 
     # Campaign lookup or creation
     campaign = db.query(Campaign).filter(Campaign.name == campaign_name).first()
@@ -117,7 +168,6 @@ async def analyze_media(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     else:
-        db.close()
         raise HTTPException(status_code=400, detail="Missing input")
 
     # Initial task entry with Audience Params
@@ -133,7 +183,6 @@ async def analyze_media(
     )
     db.add(new_task)
     db.commit()
-    db.close()
 
     audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness}
     background_tasks.add_task(run_inference_task, task_id, file_path, media_type, audience_params)
@@ -148,10 +197,11 @@ async def analyze_batch(
     age: str = "25-34",
     platform: str = "Meta",
     industry: str = "D2C",
-    awareness: str = "Cold"
+    awareness: str = "Cold",
+    current_user: User = Depends(require_marketer),
+    db: Session = Depends(get_db)
 ):
     task_ids = []
-    db = SessionLocal()
 
     campaign = db.query(Campaign).filter(Campaign.name == campaign_name).first()
     if not campaign:
@@ -184,21 +234,18 @@ async def analyze_batch(
         background_tasks.add_task(run_inference_task, task_id, file_path, media_type, audience_params)
 
     db.commit()
-    db.close()
     return {"task_ids": task_ids, "status": "processing"}
 
 @app.post("/generate_hooks")
-async def generate_hooks(product_desc: str, age: str, platform: str, industry: str):
+async def generate_hooks(product_desc: str, age: str, platform: str, industry: str, current_user: User = Depends(require_marketer)):
     audience_params = {"age": age, "platform": platform, "industry": industry}
     hooks = brain.strategist._generate(f"Generate 5 high-performance hooks for: {product_desc} targeting {json.dumps(audience_params)}")
     return {"hooks": hooks}
 
 @app.get("/results/{task_id}")
-async def get_results(task_id: str):
-    db = SessionLocal()
+async def get_results(task_id: str, current_user: User = Depends(require_viewer), db: Session = Depends(get_db)):
     task = db.query(AnalysisTask).filter(AnalysisTask.id == task_id).first()
     marketing_result = db.query(MarketingResult).filter(MarketingResult.task_id == task_id).first()
-    db.close()
 
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -222,8 +269,7 @@ async def get_results(task_id: str):
     }
 
 @app.post("/submit_results")
-async def submit_marketing_results(res: MarketingResultIn):
-    db = SessionLocal()
+async def submit_marketing_results(res: MarketingResultIn, current_user: User = Depends(require_marketer), db: Session = Depends(get_db)):
     new_res = MarketingResult(
         task_id=res.task_id,
         ctr=res.ctr,
@@ -234,12 +280,10 @@ async def submit_marketing_results(res: MarketingResultIn):
     )
     db.add(new_res)
     db.commit()
-    db.close()
     return {"status": "success"}
 
 @app.get("/campaigns")
-async def get_campaigns():
-    db = SessionLocal()
+async def get_campaigns(current_user: User = Depends(require_viewer), db: Session = Depends(get_db)):
     campaigns = db.query(Campaign).all()
     res = []
     for c in campaigns:
@@ -249,14 +293,11 @@ async def get_campaigns():
             "name": c.name,
             "task_count": len(tasks)
         })
-    db.close()
     return res
 
 @app.post("/chat/{task_id}")
-async def chat_with_neuro(task_id: str, query: str):
-    db = SessionLocal()
+async def chat_with_neuro(task_id: str, query: str, current_user: User = Depends(require_marketer), db: Session = Depends(get_db)):
     task = db.query(AnalysisTask).filter(AnalysisTask.id == task_id).first()
-    db.close()
 
     if not task or task.status != "completed":
         raise HTTPException(status_code=400, detail="Results not ready for chat")
@@ -266,7 +307,7 @@ async def chat_with_neuro(task_id: str, query: str):
     return {"response": response}
 
 @app.get("/health")
-async def health():
+async def health(current_user: User = Depends(require_admin)):
     return {"status": "Pro 10x engine is active"}
 
 if __name__ == "__main__":

@@ -20,6 +20,13 @@ Our "Brain" is not a single LLM, but a collaborative ecosystem of specialized ag
 ### ⚙️ Orchestration Layer (`/services`)
 - **`brain_orchestrator.py`**: The "Conductor." Coordinates communication between agents and ensures that raw neuro-data is translated into actionable marketing strategy.
 
+### 🔒 Security & Auth Layer (`/core/auth.py`)
+- **JWT-Based Authentication**: OAuth2 with Password Flow.
+- **RBAC (Role-Based Access Control)**: Three tiers of permissions:
+    - **Admin**: Full system access (Health checks, user management).
+    - **Marketer**: Core operational access (Media analysis, chat, hook generation).
+    - **Viewer**: Read-only access (Results retrieval, campaign viewing).
+
 ### 🖥 Interface Layer (`/interface`)
 - **`dashboard.py`**: The "Cockpit." A unified Streamlit interface that provides 7+ modules for marketing execution, from Batch Ranking to "Competitor Spy" analysis.
 
