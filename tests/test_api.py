@@ -95,15 +95,17 @@ def test_get_campaigns_viewer():
 
 def test_registration_privilege_escalation_attempt():
     # Attempt to register with a role field (which should now be ignored by the model)
+    import uuid
+    unique_user = f"hacker_{uuid.uuid4().hex[:8]}"
     response = client.post(
         "/auth/register",
-        json={"username": "hacker", "password": "password123", "role": "Admin"}
+        json={"username": unique_user, "password": "password123", "role": "Admin"}
     )
     assert response.status_code == 200
 
     # Verify the user was created with the default 'Marketer' role, not 'Admin'
     db = SessionLocal()
-    user = db.query(User).filter_by(username="hacker").first()
+    user = db.query(User).filter_by(username=unique_user).first()
     assert user.role == "Marketer"
     db.close()
 

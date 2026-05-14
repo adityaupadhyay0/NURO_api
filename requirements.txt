@@ -15,4 +15,7 @@ torchaudio
 beautifulsoup4
 google-generativeai
 sqlalchemy
+slowapi
+python-jose[cryptography]
+passlib[bcrypt]
 tribev2 @ git+https://github.com/facebookresearch/tribev2.git

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends, status
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends, status, Request
 from pydantic import BaseModel
 import shutil
 import os
@@ -21,6 +21,9 @@ from core.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from fastapi.security import OAuth2PasswordRequestForm
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -29,6 +32,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="NeuroMark Pro 10x API")
+
+# Rate Limiting Configuration
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 from core.config import UPLOAD_DIR, RESULTS_DIR
 
@@ -103,7 +111,8 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
         db.close()
 
 @app.post("/auth/register")
-async def register(user: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+async def register(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -117,7 +126,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     return {"message": "User created successfully", "username": new_user.username}
 
 @app.post("/auth/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -132,7 +142,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/analyze", response_model=AnalysisResponse)
+@limiter.limit("10/minute")
 async def analyze_media(
+    request: Request,
     background_tasks: BackgroundTasks,
     media_type: str,
     file: UploadFile = File(None),
@@ -189,7 +201,9 @@ async def analyze_media(
     return AnalysisResponse(task_id=task_id, status="processing")
 
 @app.post("/analyze_batch")
+@limiter.limit("5/minute")
 async def analyze_batch(
+    request: Request,
     background_tasks: BackgroundTasks,
     media_type: str,
     files: list[UploadFile] = File(...),
@@ -237,7 +251,8 @@ async def analyze_batch(
     return {"task_ids": task_ids, "status": "processing"}
 
 @app.post("/generate_hooks")
-async def generate_hooks(product_desc: str, age: str, platform: str, industry: str, current_user: User = Depends(require_marketer)):
+@limiter.limit("10/minute")
+async def generate_hooks(request: Request, product_desc: str, age: str, platform: str, industry: str, current_user: User = Depends(require_marketer)):
     audience_params = {"age": age, "platform": platform, "industry": industry}
     hooks = brain.strategist._generate(f"Generate 5 high-performance hooks for: {product_desc} targeting {json.dumps(audience_params)}")
     return {"hooks": hooks}
@@ -296,7 +311,8 @@ async def get_campaigns(current_user: User = Depends(require_viewer), db: Sessio
     return res
 
 @app.post("/chat/{task_id}")
-async def chat_with_neuro(task_id: str, query: str, current_user: User = Depends(require_marketer), db: Session = Depends(get_db)):
+@limiter.limit("15/minute")
+async def chat_with_neuro(request: Request, task_id: str, query: str, current_user: User = Depends(require_marketer), db: Session = Depends(get_db)):
     task = db.query(AnalysisTask).filter(AnalysisTask.id == task_id).first()
 
     if not task or task.status != "completed":

@@ -5,3 +5,4 @@ results/*
 nilearn_data/
 cache/
 .pytest_cache/
+*.db
