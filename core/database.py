@@ -1,8 +1,11 @@
 from sqlalchemy import create_engine, Column, String, Float, Integer, JSON, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker
-from datetime import datetime
+from datetime import datetime, UTC
 
 Base = declarative_base()
+
+def get_utc_now():
+    return datetime.now(UTC)
 
 class User(Base):
     __tablename__ = 'users'
@@ -10,13 +13,13 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(String, default="Marketer") # Admin, Marketer, Viewer
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=get_utc_now)
 
 class Campaign(Base):
     __tablename__ = 'campaigns'
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, unique=True)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=get_utc_now)
 
 class AnalysisTask(Base):
     __tablename__ = 'analysis_tasks'
@@ -34,7 +37,7 @@ class AnalysisTask(Base):
     status = Column(String, default="processing")
     results = Column(JSON, nullable=True) # Predicted Neuro & Marketing KPIs
     ai_advice = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=get_utc_now)
 
 class MarketingResult(Base):
     __tablename__ = 'marketing_results'
@@ -45,7 +48,7 @@ class MarketingResult(Base):
     cpa = Column(Float, nullable=True)
     conversion_rate = Column(Float, nullable=True)
     notes = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=get_utc_now)
 
 # Database Setup
 import logging
