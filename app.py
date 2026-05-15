@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends, status
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends, status, Request
 from pydantic import BaseModel
 import shutil
 import os
@@ -6,7 +6,10 @@ import uuid
 import json
 from werkzeug.utils import secure_filename
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from core.neuro_engine import NeuroEngine
 from services.brain_orchestrator import CampaignBrain
 from core.database import SessionLocal, AnalysisTask, Campaign, MarketingResult, User
@@ -28,7 +31,10 @@ from typing import List
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="NeuroMark Pro 10x API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 from core.config import UPLOAD_DIR, RESULTS_DIR
 
@@ -95,7 +101,7 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
         try:
             task.status = "failed"
             # Optional: Store error details for debugging
-            task.ai_advice = json.dumps({"error": str(e), "timestamp": str(datetime.now())})
+            task.ai_advice = json.dumps({"error": str(e), "timestamp": str(datetime.now(UTC))})
             db.commit()
         except Exception as db_err:
             logger.error(f"Failed to update task status to 'failed': {str(db_err)}")
@@ -103,7 +109,8 @@ def run_inference_task(task_id: str, file_path: str, media_type: str, audience_p
         db.close()
 
 @app.post("/auth/register")
-async def register(user: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -117,7 +124,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     return {"message": "User created successfully", "username": new_user.username}
 
 @app.post("/auth/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -132,7 +140,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/analyze", response_model=AnalysisResponse)
+@limiter.limit("10/minute")
 async def analyze_media(
+    request: Request,
     background_tasks: BackgroundTasks,
     media_type: str,
     file: UploadFile = File(None),
@@ -189,7 +199,9 @@ async def analyze_media(
     return AnalysisResponse(task_id=task_id, status="processing")
 
 @app.post("/analyze_batch")
+@limiter.limit("10/minute")
 async def analyze_batch(
+    request: Request,
     background_tasks: BackgroundTasks,
     media_type: str,
     files: list[UploadFile] = File(...),
@@ -237,7 +249,8 @@ async def analyze_batch(
     return {"task_ids": task_ids, "status": "processing"}
 
 @app.post("/generate_hooks")
-async def generate_hooks(product_desc: str, age: str, platform: str, industry: str, current_user: User = Depends(require_marketer)):
+@limiter.limit("20/minute")
+async def generate_hooks(request: Request, product_desc: str, age: str, platform: str, industry: str, current_user: User = Depends(require_marketer)):
     audience_params = {"age": age, "platform": platform, "industry": industry}
     hooks = brain.strategist._generate(f"Generate 5 high-performance hooks for: {product_desc} targeting {json.dumps(audience_params)}")
     return {"hooks": hooks}
@@ -296,7 +309,8 @@ async def get_campaigns(current_user: User = Depends(require_viewer), db: Sessio
     return res
 
 @app.post("/chat/{task_id}")
-async def chat_with_neuro(task_id: str, query: str, current_user: User = Depends(require_marketer), db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+async def chat_with_neuro(request: Request, task_id: str, query: str, current_user: User = Depends(require_marketer), db: Session = Depends(get_db)):
     task = db.query(AnalysisTask).filter(AnalysisTask.id == task_id).first()
 
     if not task or task.status != "completed":

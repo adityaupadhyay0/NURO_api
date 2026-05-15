@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
 import os
 import sys
+import uuid
 
 # Ensure the root directory is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -95,15 +96,16 @@ def test_get_campaigns_viewer():
 
 def test_registration_privilege_escalation_attempt():
     # Attempt to register with a role field (which should now be ignored by the model)
+    unique_user = f"hacker_{uuid.uuid4().hex[:8]}"
     response = client.post(
         "/auth/register",
-        json={"username": "hacker", "password": "password123", "role": "Admin"}
+        json={"username": unique_user, "password": "password123", "role": "Admin"}
     )
     assert response.status_code == 200
 
     # Verify the user was created with the default 'Marketer' role, not 'Admin'
     db = SessionLocal()
-    user = db.query(User).filter_by(username="hacker").first()
+    user = db.query(User).filter_by(username=unique_user).first()
     assert user.role == "Marketer"
     db.close()
 
