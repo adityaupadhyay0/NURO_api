@@ -8,7 +8,9 @@ import uuid
 import threading
 import time
 import logging
-from core.config import UPLOAD_DIR, TRIBE_MODEL_ID
+import pickle
+from core.config import UPLOAD_DIR, TRIBE_MODEL_ID, CACHE_DIR
+from core.hashing import calculate_file_hash
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +65,20 @@ class NeuroEngine:
             return results
 
     def _run_analysis(self, file_path, media_type, audience_params):
+        # Cache Check (Skip hashing for URLs as they are transient/text-based)
+        file_hash = None
+        if media_type in ["video", "audio", "text"]:
+            try:
+                file_hash = calculate_file_hash(file_path)
+                cache_path = os.path.join(CACHE_DIR, f"{file_hash}.pkl")
+                if os.path.exists(cache_path):
+                    logger.info(f"Cache hit for {file_path} (Hash: {file_hash})")
+                    with open(cache_path, "rb") as f:
+                        cached_data = pickle.load(f)
+                        return self._process_predictions(cached_data["preds"], cached_data["segments"], audience_params)
+            except Exception as e:
+                logger.warning(f"Cache retrieval failed for {file_path}: {e}. Falling back to fresh inference.")
+
         if media_type == "video":
             df_events = self.model.get_events_dataframe(video_path=file_path)
         elif media_type == "audio":
@@ -95,7 +111,22 @@ class NeuroEngine:
         else:
             raise ValueError(f"Unsupported media type: {media_type}")
 
-        preds, segments = self.model.predict(events=df_events)
+        with torch.inference_mode():
+            preds, segments = self.model.predict(events=df_events)
+
+        # Save to Cache
+        if file_hash:
+            try:
+                cache_path = os.path.join(CACHE_DIR, f"{file_hash}.pkl")
+                # Atomic write to prevent corruption during concurrent access
+                temp_cache = f"{cache_path}.tmp.{uuid.uuid4()}"
+                with open(temp_cache, "wb") as f:
+                    pickle.dump({"preds": preds, "segments": segments}, f)
+                os.rename(temp_cache, cache_path)
+                logger.info(f"Cached results for {file_path} (Hash: {file_hash})")
+            except Exception as e:
+                logger.error(f"Failed to cache results for {file_path}: {e}")
+
         # TRIBE v2 predicts on fsaverage5: (n_timesteps, 20484)
         # where the first 10242 vertices are Left Hem, and next 10242 are Right Hem.
 

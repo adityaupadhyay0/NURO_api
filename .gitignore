@@ -3,5 +3,6 @@ uploads/*
 results/*
 *.log
 nilearn_data/
-cache/
+cache/*
+neuromark_pro.db
 .pytest_cache/
