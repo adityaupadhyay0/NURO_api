@@ -16,6 +16,7 @@ Our "Brain" is not a single LLM, but a collaborative ecosystem of specialized ag
 - **Creative Strategist**: Expert in D2C hooks, psychological triggers, and ad copy.
 - **Media Buyer**: Focused on auction dynamics, CPM estimation, and funnel logic.
 - **CRO Optimizer**: Conversion rate specialist for landing page and CTA refinement.
+- **Audience Agent**: Synthetic audience specialist that derives neurological multipliers from psychographic personas.
 
 ### ⚙️ Orchestration Layer (`/services`)
 - **`brain_orchestrator.py`**: The "Conductor." Coordinates communication between agents and ensures that raw neuro-data is translated into actionable marketing strategy.

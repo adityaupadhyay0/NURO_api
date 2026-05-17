@@ -152,6 +152,7 @@ async def analyze_media(
     platform: str = "Meta",
     industry: str = "D2C",
     awareness: str = "Cold",
+    persona: str = None,
     current_user: User = Depends(require_marketer),
     db: Session = Depends(get_db)
 ):
@@ -189,12 +190,13 @@ async def analyze_media(
         audience_age=age,
         audience_platform=platform,
         audience_industry=industry,
-        audience_awareness=awareness
+        audience_awareness=awareness,
+        persona_description=persona
     )
     db.add(new_task)
     db.commit()
 
-    audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness}
+    audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness, "persona": persona}
     background_tasks.add_task(run_inference_task, task_id, file_path, media_type, audience_params)
     return AnalysisResponse(task_id=task_id, status="processing")
 
@@ -210,6 +212,7 @@ async def analyze_batch(
     platform: str = "Meta",
     industry: str = "D2C",
     awareness: str = "Cold",
+    persona: str = None,
     current_user: User = Depends(require_marketer),
     db: Session = Depends(get_db)
 ):
@@ -222,7 +225,7 @@ async def analyze_batch(
         db.commit()
         db.refresh(campaign)
 
-    audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness}
+    audience_params = {"age": age, "platform": platform, "industry": industry, "awareness": awareness, "persona": persona}
 
     for file in files:
         task_id = str(uuid.uuid4())
@@ -239,7 +242,8 @@ async def analyze_batch(
             audience_age=age,
             audience_platform=platform,
             audience_industry=industry,
-            audience_awareness=awareness
+            audience_awareness=awareness,
+            persona_description=persona
         )
         db.add(new_task)
         task_ids.append(task_id)
@@ -271,7 +275,8 @@ async def get_results(task_id: str, current_user: User = Depends(require_viewer)
             "age": task.audience_age,
             "platform": task.audience_platform,
             "industry": task.audience_industry,
-            "awareness": task.audience_awareness
+            "awareness": task.audience_awareness,
+            "persona": task.persona_description
         },
         "data": task.results,
         "ai_advice": task.ai_advice,

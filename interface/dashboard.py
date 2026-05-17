@@ -74,6 +74,7 @@ with tab1:
         platform = st.selectbox("Platform", ["Meta", "TikTok", "YouTube", "LinkedIn", "Google Display"])
         industry = st.selectbox("Industry", ["D2C", "SaaS", "Info Products", "Professional Services"])
         awareness = st.selectbox("Awareness Level", ["Cold", "Warm", "Hot"])
+        persona = st.text_area("Synthetic Persona (AI-Derived)", help="Describe your niche audience (e.g. 'Eco-conscious Gen Z minimalist'). Leaving this empty uses standard demographics.")
 
         st.divider()
         st.header("2. Upload Creative")
@@ -95,7 +96,8 @@ with tab1:
                 "age": age,
                 "platform": platform,
                 "industry": industry,
-                "awareness": awareness
+                "awareness": awareness,
+                "persona": persona
             }
             if uploaded_file: files = {"file": uploaded_file.getvalue()}
             if text_input: params["text_content"] = text_input
@@ -233,6 +235,7 @@ with tab_batch:
         b_age = st.selectbox("Batch Age", ["18-24", "25-34", "35-44", "45-54", "55+"], key="b_age")
         b_plat = st.selectbox("Batch Platform", ["Meta", "TikTok", "YouTube", "LinkedIn"], key="b_plat")
         b_ind = st.selectbox("Batch Industry", ["D2C", "SaaS", "Info Products"], key="b_ind")
+        b_persona = st.text_area("Batch Synthetic Persona", key="b_persona")
 
     batch_files = st.file_uploader("Upload Creatives", type=["mp4", "wav", "mp3"], accept_multiple_files=True)
 
@@ -244,7 +247,8 @@ with tab_batch:
                 "campaign_name": f"Batch_{int(time.time())}",
                 "age": b_age,
                 "platform": b_plat,
-                "industry": b_ind
+                "industry": b_ind,
+                "persona": b_persona
             }
             with st.spinner("Processing Batch Analysis (High-Throughput Mode)..."):
                 try:

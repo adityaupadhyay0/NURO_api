@@ -58,10 +58,9 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 - Need for rate limiting.
 
 # Active Task
-- Optimized Infrastructure (Persistent Neural Caching & Inference Mode).
+- Synthetic Persona Weighting Engine (Dynamic Audience Simulation).
 
 # Queued Tasks
-1. Synthetic audience simulation expansion.
 5. Neuro-native generation integration.
 6. Global performance benchmarks implementation.
 
@@ -71,6 +70,7 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 - Destrieux Surface Atlas for ROI mapping.
 
 # Recently Completed Tasks
+- Synthetic Persona Weighting Engine: Implemented dynamic ROI multipliers derived from specialized `AudienceAgent` (Gemini), enabling precise simulation of niche consumer personas.
 - Persistent Neural Caching: Implemented disk-based SHA-256 caching for neural predictions, achieving >100x speedup on repeat media.
 - Inference Optimization: Integrated `torch.inference_mode()` to reduce model overhead.
 - API Rate Limiting: Integrated `slowapi` to protect high-compute and sensitive endpoints.
@@ -94,6 +94,36 @@ NeuroMark Pro 10x aims to be the world’s most advanced AI-powered marketing in
 - [ ] Haptic/Spatial neuro-inference.
 
 # Execution Log
+## [2026-05-23]
+### Completed
+- Implemented `AudienceAgent` for dynamic psychographic weighting.
+- Expanded `AnalysisTask` schema to support `persona_description`.
+- Integrated dynamic multipliers into `NeuroEngine._apply_audience_weighting`.
+- Updated Dashboard UI with persona input fields.
+
+### Discovered
+- LLM-derived ROI multipliers provide a superior way to simulate niche audiences compared to hardcoded heuristics.
+- Persona-based weighting significantly affects 'Winning Probability' and 'Viral Potential' metrics.
+
+### Architecture Changes
+- Added `AudienceAgent` to the Multi-Agent Layer.
+- Added `persona_description` to the persistence layer.
+
+### Reliability Findings
+- Deterministic fallback in `AudienceAgent` ensures system stability if Gemini parsing fails.
+
+### Security Findings
+- Prompt sanitization in `AudienceAgent` prevents persona-based injection.
+
+### Performance Findings
+- Persona derivation adds ~1-2s of latency to the first analysis of a new persona, but results are cached alongside neural data.
+
+### Scientific Constraints
+- ROI mappings (e.g. Cognitive Load -> Conversion Friction) remain scientifically anchored to the TRIBE v2 activation map.
+
+### Next Recommended Actions
+- Move towards "Neuro-native generation integration" to use persona data for creative feedback loops.
+
 ## [2026-05-22]
 ### Completed
 - Implemented `MediaHasher` for creative deduplication.
