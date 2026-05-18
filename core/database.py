@@ -33,6 +33,7 @@ class AnalysisTask(Base):
     audience_platform = Column(String, nullable=True)
     audience_industry = Column(String, nullable=True)
     audience_awareness = Column(String, nullable=True)
+    persona_description = Column(String, nullable=True)
 
     status = Column(String, default="processing")
     results = Column(JSON, nullable=True) # Predicted Neuro & Marketing KPIs

@@ -11,11 +11,13 @@ import logging
 import pickle
 from core.config import UPLOAD_DIR, TRIBE_MODEL_ID, CACHE_DIR
 from core.hashing import calculate_file_hash
+from agents.specialized_agents import AudienceAgent
 
 logger = logging.getLogger(__name__)
 
 class NeuroEngine:
     def __init__(self, model_id=TRIBE_MODEL_ID):
+        self.audience_agent = AudienceAgent()
         self.lock = threading.Lock()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Initializing NeuroEngine on {self.device}...")
@@ -256,16 +258,36 @@ class NeuroEngine:
         return results
 
     def _apply_audience_weighting(self, kpis, params):
-        """Deterministically adjust KPIs based on audience psychographics."""
+        """Deterministically adjust KPIs based on audience psychographics and synthetic personas."""
         age = params.get("age", "25-34")
         platform = params.get("platform", "Meta")
         industry = params.get("industry", "D2C")
         awareness = params.get("awareness", "Cold")
+        persona = params.get("persona")
+
+        # Fetch dynamic persona multipliers if applicable
+        persona_multipliers = {}
+        if persona:
+            logger.info(f"Fetching dynamic multipliers for persona: {persona}")
+            persona_multipliers = self.audience_agent.derive_multipliers(persona)
 
         adjusted = {}
         for kpi_name, values in kpis.items():
             # Interaction effects for 10x Precision
             multipliers = []
+
+            # Apply dynamic persona multipliers (Mapping ROI multipliers to KPIs)
+            if persona_multipliers:
+                if kpi_name == "ScrollStopRate":
+                    multipliers.append(persona_multipliers.get("Attention", 1.0))
+                elif kpi_name == "PurchaseIntent":
+                    multipliers.append(persona_multipliers.get("Reward", 1.0))
+                elif kpi_name == "Clarity":
+                    multipliers.append(2.0 - persona_multipliers.get("CognitiveLoad", 1.0)) # Inverse
+                elif kpi_name == "ViralPotential":
+                    multipliers.append(persona_multipliers.get("Emotion", 1.0))
+                elif kpi_name == "ConversionFriction":
+                    multipliers.append(persona_multipliers.get("CognitiveLoad", 1.0))
 
             # Platform & Age interaction (The "TikTok/Gen Z" multiplier)
             if platform == "TikTok" and age == "18-24":
